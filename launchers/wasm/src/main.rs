@@ -3,14 +3,10 @@ use stylist::yew::styled_component;
 use stylist::{css, global_style};
 use yew::prelude::*;
 
-use my_game::LAUNCHER_TITLE;
+use bevy_jam_game::LAUNCHER_TITLE;
 
 fn set_window_title(title: &str) {
-    web_sys::window()
-        .map(|w| w.document())
-        .flatten()
-        .expect("Unable to get DOM")
-        .set_title(title);
+    web_sys::window().and_then(|w| w.document()).expect("Unable to get DOM").set_title(title);
 }
 
 fn set_global_css() {
@@ -54,8 +50,9 @@ fn view() -> Html {
 fn main() {
     // Mount the DOM
     yew::start_app::<Root>();
+
     // Start the Bevy App
-    let mut app = my_game::app();
+    let mut app = bevy_jam_game::app();
     info!("Starting launcher: WASM");
     app.run();
 }

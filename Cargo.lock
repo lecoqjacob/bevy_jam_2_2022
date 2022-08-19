@@ -187,6 +187,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55f08528a4e59d607460513a823b40f602d013c1a00f57b824f1075d5d48c3cd"
 dependencies = [
+ "bevy_dylib",
  "bevy_internal",
 ]
 
@@ -249,6 +250,29 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "bevy_asset_loader"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91275716531c98d9907ee8c57854d11e3688780a9cefc66b1d4da601a3e3c41e"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "bevy_asset_loader_derive",
+ "iyes_loopless",
+]
+
+[[package]]
+name = "bevy_asset_loader_derive"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e721755806423f711c0934295872808adb20d379b3073c679ed544960fc84b6d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -322,6 +346,15 @@ dependencies = [
  "bevy_log",
  "bevy_time",
  "bevy_utils",
+]
+
+[[package]]
+name = "bevy_dylib"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdf5aa9a93a5b8e4314b0adb56803f7f3d95420ec0d8821e17ed0e3ce76ef8be"
+dependencies = [
+ "bevy_internal",
 ]
 
 [[package]]
@@ -468,6 +501,21 @@ dependencies = [
  "bevy_window",
  "bevy_winit",
  "ndk-glue 0.5.2",
+]
+
+[[package]]
+name = "bevy_jam_game"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_asset_loader",
+ "bracket-geometry",
+ "bracket-pathfinding",
+ "bracket-random",
+ "image",
+ "iyes_loopless",
+ "parking_lot 0.12.1",
+ "winit",
 ]
 
 [[package]]
@@ -874,6 +922,51 @@ name = "boolinator"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfa8873f51c92e232f9bac4065cddef41b714152812bfc5f7672ba16d6ef8cd9"
+
+[[package]]
+name = "bracket-algorithm-traits"
+version = "0.8.2"
+source = "git+https://github.com/lecoqjacob/bracket-lib?branch=custom#adcd5175acfc2e92fd9b3f3b6645cfdf5ac4a9bc"
+dependencies = [
+ "bracket-geometry",
+ "smallvec",
+]
+
+[[package]]
+name = "bracket-geometry"
+version = "0.8.5"
+source = "git+https://github.com/lecoqjacob/bracket-lib?branch=custom#adcd5175acfc2e92fd9b3f3b6645cfdf5ac4a9bc"
+dependencies = [
+ "bevy",
+ "serde",
+ "ultraviolet",
+]
+
+[[package]]
+name = "bracket-pathfinding"
+version = "0.8.4"
+source = "git+https://github.com/lecoqjacob/bracket-lib?branch=custom#adcd5175acfc2e92fd9b3f3b6645cfdf5ac4a9bc"
+dependencies = [
+ "bracket-algorithm-traits",
+ "bracket-geometry",
+ "num-rational",
+ "smallvec",
+]
+
+[[package]]
+name = "bracket-random"
+version = "0.8.3"
+source = "git+https://github.com/lecoqjacob/bracket-lib?branch=custom#adcd5175acfc2e92fd9b3f3b6645cfdf5ac4a9bc"
+dependencies = [
+ "getrandom",
+ "js-sys",
+ "lazy_static",
+ "rand",
+ "rand_xorshift",
+ "regex",
+ "serde",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "bumpalo"
@@ -2010,6 +2103,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8af84674fe1f223a982c933a0ee1086ac4d4052aa0fb8060c12c6ad838e754"
 
 [[package]]
+name = "iyes_loopless"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fec251a82c60be9e282aec12056fa153666d5730b21d124655d7c22114d342c8"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_time",
+ "bevy_utils",
+]
+
+[[package]]
 name = "jni"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2263,15 +2368,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "my-game"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "image",
- "winit",
-]
-
-[[package]]
 name = "naga"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2307,8 +2403,8 @@ name = "native-launcher"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_jam_game",
  "image",
- "my-game",
  "winit",
 ]
 
@@ -2801,6 +2897,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17fd96390ed3feda12e1dfe2645ed587e0bea749e319333f104a33ff62f77a0b"
 
 [[package]]
+name = "rand"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
+name = "rand_core"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
+
+[[package]]
+name = "rand_xorshift"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
+dependencies = [
+ "rand_core",
+ "serde",
+]
+
+[[package]]
 name = "range-alloc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2929,6 +3050,15 @@ name = "ryu"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4501abdff3ae82a1c1b477a17252eb69cee9e66eb915c1abaa4f44d873df9f09"
+
+[[package]]
+name = "safe_arch"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "794821e4ccb0d9f979512f9c1973480123f9bd62a90d74ab0f9426fcf8f4a529"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "same-file"
@@ -3330,6 +3460,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
 
 [[package]]
+name = "ultraviolet"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf2728f3858937f50df6d92b741f53ef8fd5b5ae23b03b73fb9ac891e980df3b"
+dependencies = [
+ "wide",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3471,7 +3610,7 @@ name = "wasm-launcher"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "my-game",
+ "bevy_jam_game",
  "stylist",
  "web-sys",
  "yew",
@@ -3658,6 +3797,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f762cbc08e1a51389859cf9c199c7aef544789cf3510889aab12c607f701604"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "wide"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3aba2d1dac31ac7cae82847ac5b8be822aee8f99a4e100f279605016b185c5f"
+dependencies = [
+ "bytemuck",
+ "safe_arch",
 ]
 
 [[package]]

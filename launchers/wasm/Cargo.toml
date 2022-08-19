@@ -1,12 +1,13 @@
 [package]
+edition = "2021"
 name = "wasm-launcher"
 version = "0.1.0"
-edition = "2021"
 workspace = "../.."
 
 [dependencies]
-my-game = { package = "my-game", path = "../.." }
-bevy = "0.8"
-web-sys = { version="0.3.59", features=["Document", "Window"] }
+bevy = { version = "0.8", default-features = false, features = ["bevy_asset", "bevy_winit", "render", "png", "x11"] }
+bevy_jam_game = { package = "bevy_jam_game", path = "../.." }
+
+stylist = { version = "0.10.1", features = ["yew_integration"] }
+web-sys = { version = "0.3.59", features = ["Document", "Window"] }
 yew = "0.19.3"
-stylist = { version= "0.10.1", features=["yew_integration"] }

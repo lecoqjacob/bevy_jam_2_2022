@@ -1,7 +1,6 @@
 use std::io::Cursor;
 
 use bevy::{prelude::*, window::WindowId, winit::WinitWindows};
-use image;
 use winit::window::Icon;
 
 fn set_window_icon(windows: NonSend<WinitWindows>) {
@@ -9,9 +8,8 @@ fn set_window_icon(windows: NonSend<WinitWindows>) {
 
     let (icon_rgba, icon_width, icon_height) = {
         let icon_buf = Cursor::new(include_bytes!("../../../assets/bevy.png"));
-        let rgba = image::load(icon_buf, image::ImageFormat::Png)
-            .expect("Failed to open icon path")
-            .into_rgba8();
+        let rgba =
+            image::load(icon_buf, image::ImageFormat::Png).expect("Failed to open icon path").into_rgba8();
 
         let (width, height) = rgba.dimensions();
         let icon_raw = rgba.into_raw();
@@ -24,7 +22,7 @@ fn set_window_icon(windows: NonSend<WinitWindows>) {
 }
 
 fn main() {
-    let mut app = my_game::app();
+    let mut app = bevy_jam_game::app();
 
     info!("Starting launcher: Native");
     app.add_startup_system(set_window_icon);

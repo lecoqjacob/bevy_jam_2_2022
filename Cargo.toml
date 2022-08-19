@@ -1,26 +1,47 @@
 [package]
-name = "my-game"
-version = "0.1.0"
 edition = "2021"
+name = "bevy_jam_game"
+version = "0.1.0"
 
 [workspace]
-members = [
-    "launchers/wasm",
-    "launchers/native",
-]
+members = ["launchers/wasm", "launchers/native"]
 
 [[bin]]
-name="native-launcher"
-path="launchers/native/src/main.rs"
+name = "native-launcher"
+path = "launchers/native/src/main.rs"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.dev]
+opt-level = 1
 
 # Optimizations for WASM
 [profile.release]
-panic = 'abort'
 codegen-units = 1
-opt-level = 'z'
 lto = true
+opt-level = 'z'
+panic = 'abort'
+
+[features]
+default = ["dev"]
+dev = ["bevy/dynamic"]
+web = []
 
 [dependencies]
-bevy = "0.8.0"
-image = "0.24.3"
-winit = "0.26.1"
+# Bevy
+bevy = { version = "0.8", default-features = false, features = ["bevy_asset", "bevy_winit", "render", "png", "x11"] }
+bevy_asset_loader = { version = "~0.12", features = ["stageless", "2d"] }
+iyes_loopless = "~0.7"
+
+# bracket-lib
+bracket-geometry = { git = "https://github.com/lecoqjacob/bracket-lib", branch = "custom", features = ['serde', 'bevy'] }
+bracket-pathfinding = { git = "https://github.com/lecoqjacob/bracket-lib", branch = "custom" }
+bracket-random = { git = "https://github.com/lecoqjacob/bracket-lib", branch = "custom", features = ['serde'] }
+
+# Utility
+parking_lot = "~0.12"
+
+# Image
+image = "~0.24"
+winit = "~0.26"

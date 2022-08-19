@@ -1,11 +1,14 @@
 [package]
+edition = "2021"
 name = "native-launcher"
 version = "0.1.0"
-edition = "2021"
 workspace = "../.."
 
 [dependencies]
-my-game = { package = "my-game", path = "../.." }
-bevy = "0.8"
-image = "0.24.3"
-winit = "0.26.1"
+bevy_jam_game = { package = "bevy_jam_game", path = "../.." }
+
+bevy = { version = "0.8", default-features = false, features = ["bevy_asset", "bevy_winit", "render", "png", "x11"] }
+
+# Image
+image = "~0.24"
+winit = "~0.26"
