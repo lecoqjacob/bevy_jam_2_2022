@@ -21,33 +21,35 @@ pub const ZBUF_TILES: f32 = 0.0;
 
 #[derive(AssetCollection)]
 pub struct TextureAssets {
-    #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 16, rows = 16))]
-    #[asset(path = "textures/terminal8x8_transparent.png")]
-    pub terminal: Handle<TextureAtlas>,
+    // #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 16, rows = 16))]
+    // #[asset(path = "textures/terminal8x8_transparent.png")]
+    // pub terminal: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 10, rows = 8))]
-    #[asset(path = "textures/Undead0.png")]
-    pub undead: Handle<TextureAtlas>,
+    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 10, rows = 8))]
+    // #[asset(path = "textures/Undead0.png")]
+    // pub undead: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 8, rows = 4))]
-    #[asset(path = "textures/Potion.png")]
-    pub potions: Handle<TextureAtlas>,
+    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 8, rows = 4))]
+    // #[asset(path = "textures/Potion.png")]
+    // pub potions: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 4, rows = 4))]
-    #[asset(path = "textures/Rogue.png")]
-    pub rogue: Handle<TextureAtlas>,
+    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 4, rows = 4))]
+    // #[asset(path = "textures/Rogue.png")]
+    // pub rogue: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 20, rows = 51))]
-    #[asset(path = "textures/Wall.png")]
-    pub wall: Handle<TextureAtlas>,
+    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 20, rows = 51))]
+    // #[asset(path = "textures/Wall.png")]
+    // pub wall: Handle<TextureAtlas>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 21, rows = 39))]
-    #[asset(path = "textures/Floor.png")]
-    pub floor: Handle<TextureAtlas>,
+    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 21, rows = 39))]
+    // #[asset(path = "textures/Floor.png")]
+    // pub floor: Handle<TextureAtlas>,
 
-    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 16, rows = 16))]
-    #[asset(path = "textures/tileset.png")]
-    pub tileset: Handle<Image>,
+    // // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 16, rows = 16))]
+    // #[asset(path = "textures/tileset.png")]
+    // pub tileset: Handle<Image>,
+    #[asset(path = "bevy.png")]
+    pub bevy_logo: Handle<Image>,
 }
 
 #[derive(AssetCollection)]
@@ -66,6 +68,8 @@ pub struct FontAssets {
 pub struct LoadingMenu;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn_bundle(Camera2dBundle::default());
+
     // Loading Menu
     commands
         .spawn_bundle(NodeBundle {
@@ -101,12 +105,12 @@ impl Plugin for LoadingPlugin {
         app.init_resource::<RandomNumbers>();
 
         app.add_startup_system(setup)
-            .add_exit_system(AppState::Loading, despawn_all_with::<LoadingMenu>)
+            .add_exit_system(AppState::AssetLoading, despawn_all_with::<LoadingMenu>)
             .add_loading_state(
-                LoadingState::new(AppState::Loading)
+                LoadingState::new(AppState::AssetLoading)
                     .with_collection::<FontAssets>()
                     .with_collection::<TextureAssets>()
-                    .continue_to_state(AppState::WorldGeneration),
+                    .continue_to_state(AppState::MenuMain),
             );
     }
 }

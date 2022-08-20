@@ -1,4 +1,4 @@
-use bevy::prelude::StageLabel;
+use bevy::prelude::{StageLabel, SystemLabel};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TurnState {
@@ -9,16 +9,13 @@ pub enum TurnState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppState {
-    Loading,
-
-    MainMenu,
-    GameOver,
-
-    WorldGeneration,
-    DungeonCrawlEnter,
-    DungeonCrawl(TurnState),
-    DungeonCrawlExitToMenu,
-    DungeonCrawlDescend,
+    AssetLoading,
+    MenuMain,
+    MenuOnline,
+    MenuConnect,
+    RoundLocal,
+    RoundOnline,
+    Win,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, StageLabel)]
@@ -40,4 +37,10 @@ pub enum AIStage {
 pub enum RenderStage {
     Camera,
     RenderPostUpdate,
+}
+
+#[derive(SystemLabel, Debug, Clone, Hash, Eq, PartialEq)]
+pub enum SystemLabels {
+    Input,
+    Velocity,
 }
