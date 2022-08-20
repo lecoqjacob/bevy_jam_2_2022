@@ -51,3 +51,4 @@ parking_lot = "~0.12"
 # Image
 image = "~0.24"
 winit = "~0.26"
+bevy_ecs_tilemap = "0.7.0"

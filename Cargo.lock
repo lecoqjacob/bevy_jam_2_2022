@@ -734,6 +734,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_ecs_tilemap"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ef56c77808aa1fc7379ce538bd9a1e4048794203b4f591f2d06131fc613a1cc"
+dependencies = [
+ "bevy",
+ "log",
+ "regex",
+]
+
+[[package]]
 name = "bevy_encase_derive"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -869,6 +880,7 @@ dependencies = [
  "bevy",
  "bevy-web-resizer",
  "bevy_asset_loader",
+ "bevy_ecs_tilemap",
  "bevy_ggrs",
  "bracket-geometry",
  "bracket-pathfinding",

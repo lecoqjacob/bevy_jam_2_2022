@@ -5,6 +5,7 @@ mod camera;
 mod checksum;
 mod components;
 mod loading;
+mod map;
 mod menu;
 mod random;
 mod round;
@@ -31,6 +32,7 @@ mod prelude {
     pub use crate::camera::*;
     pub use crate::components::*;
     pub use crate::loading::*;
+    pub use crate::map::*;
     pub use crate::random::*;
     pub use crate::state::*;
     pub use crate::utils::*;
@@ -102,7 +104,8 @@ pub fn app() -> App {
     app.add_loopless_state(AppState::AssetLoading)
         .add_plugins(DefaultPlugins)
         .add_plugin(LoadingPlugin)
-        .add_plugins(MenuPlugins);
+        .add_plugins(MenuPlugins)
+        .add_plugin(MapPlugin);
 
     app
 }
