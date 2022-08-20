@@ -11,11 +11,7 @@ impl Plugin for MapPlugin {
     }
 }
 
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(Camera2dBundle::default());
-
-    let texture_handle: Handle<Image> = asset_server.load("tiles.png");
-
+fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
     let tilemap_size = TilemapSize { x: 32, y: 32 };
 
     // Create a tilemap entity a little early.
@@ -39,6 +35,7 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn()
                 .insert_bundle(TileBundle {
                     position: tile_pos,
+                    texture: TileTexture(1),
                     tilemap_id: TilemapId(tilemap_entity),
                     ..Default::default()
                 })
@@ -53,9 +50,13 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
         grid_size: TilemapGridSize { x: 16.0, y: 16.0 },
         size: tilemap_size,
         storage: tile_storage,
-        texture: TilemapTexture(texture_handle),
+        texture: TilemapTexture(textures.tiles.clone()),
         tile_size,
-        transform: bevy_ecs_tilemap::helpers::get_centered_transform_2d(&tilemap_size, &tile_size, 0.0),
+        transform: bevy_ecs_tilemap::helpers::get_centered_transform_2d(
+            &tilemap_size,
+            &tile_size,
+            0.0,
+        ),
         ..Default::default()
     });
 }

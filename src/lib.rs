@@ -11,7 +11,6 @@ mod random;
 mod round;
 mod state;
 mod utils;
-mod world_gen;
 
 mod prelude {
     pub use bevy::prelude::*;
@@ -21,6 +20,8 @@ mod prelude {
 
     pub use bevy_ggrs::GGRSPlugin;
     pub use ggrs::Config;
+
+    pub use bevy_ecs_tilemap::prelude::*;
 
     pub use bracket_geometry::prelude::*;
     pub use bracket_pathfinding::prelude::*;
@@ -36,7 +37,6 @@ mod prelude {
     pub use crate::round::*;
     pub use crate::state::*;
     pub use crate::utils::*;
-    pub use crate::world_gen::*;
 
     pub const SCREEN_WIDTH: i32 = 80;
     pub const SCREEN_HEIGHT: i32 = 60;
@@ -71,6 +71,7 @@ pub fn app() -> App {
 
     app.add_loopless_state(AppState::AssetLoading)
         .add_plugins(DefaultPlugins)
+        .add_plugin(TilemapPlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(LoadingPlugin)
         .add_plugins(MenuPlugins)

@@ -21,34 +21,14 @@ pub const ZBUF_TILES: f32 = 0.0;
 
 #[derive(AssetCollection)]
 pub struct TextureAssets {
-    // #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 16, rows = 16))]
-    // #[asset(path = "textures/terminal8x8_transparent.png")]
-    // pub terminal: Handle<TextureAtlas>,
-
-    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 10, rows = 8))]
-    // #[asset(path = "textures/Undead0.png")]
-    // pub undead: Handle<TextureAtlas>,
-
-    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 8, rows = 4))]
-    // #[asset(path = "textures/Potion.png")]
-    // pub potions: Handle<TextureAtlas>,
-    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 4, rows = 4))]
     #[asset(path = "textures/man_blue_stand.png")]
     pub man_blue: Handle<Image>,
 
-    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 20, rows = 51))]
-    // #[asset(path = "textures/Wall.png")]
-    // pub wall: Handle<TextureAtlas>,
-
-    // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 21, rows = 39))]
-    // #[asset(path = "textures/Floor.png")]
-    // pub floor: Handle<TextureAtlas>,
-
-    // // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 16, rows = 16))]
-    // #[asset(path = "textures/tileset.png")]
-    // pub tileset: Handle<Image>,
     #[asset(path = "bevy.png")]
     pub bevy_logo: Handle<Image>,
+
+    #[asset(path = "bevy.png")]
+    pub tiles: Handle<Image>,
 }
 
 #[derive(AssetCollection)]

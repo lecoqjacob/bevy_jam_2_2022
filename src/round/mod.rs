@@ -114,49 +114,8 @@ pub fn input(
     GameInput { inp }
 }
 
-const MAP_SIZE: u32 = 41;
-const GRID_WIDTH: f32 = 0.05;
-
 pub fn setup_round(mut commands: Commands) {
     commands.insert_resource(FrameCount::default());
-
-    // Horizontal lines
-    for i in 0..=MAP_SIZE {
-        commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_translation(Vec3::new(
-                    0.,
-                    i as f32 - MAP_SIZE as f32 / 2.,
-                    10.,
-                )),
-                sprite: Sprite {
-                    color: Color::rgb(0.27, 0.27, 0.27),
-                    // custom_size: Some(Vec2::new(MAP_SIZE as f32, GRID_WIDTH)),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .insert(RoundEntity);
-    }
-
-    // Vertical lines
-    for i in 0..=MAP_SIZE {
-        commands
-            .spawn_bundle(SpriteBundle {
-                transform: Transform::from_translation(Vec3::new(
-                    i as f32 - MAP_SIZE as f32 / 2.,
-                    0.,
-                    10.,
-                )),
-                sprite: Sprite {
-                    color: Color::rgb(0.27, 0.27, 0.27),
-                    // custom_size: Some(Vec2::new(GRID_WIDTH, MAP_SIZE as f32)),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .insert(RoundEntity);
-    }
 }
 
 pub fn spawn_players(

@@ -42,9 +42,7 @@ pub struct MainCamera;
 
 fn setup_game_camera(mut commands: Commands) {
     // Add a 2D Camera
-    let cam = Camera2dBundle::default();
-    // cam.transform.scale = Vec3::new(0.5, 0.5, 1.0);
-    commands.spawn_bundle(cam).insert(MainCamera);
+    commands.spawn_bundle(Camera2dBundle::default()).insert(MainCamera);
 }
 
 pub fn camera_follow(
@@ -66,24 +64,7 @@ pub fn camera_follow(
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_stage_after(
-            CoreStage::PostUpdate,
-            RenderStage::Camera,
-            SystemStage::single_threaded(),
-        )
-        .add_stage_after(
-            RenderStage::Camera,
-            RenderStage::RenderPostUpdate,
-            SystemStage::single_threaded(),
-        );
-
         app.add_startup_system(setup_game_camera);
         app.add_system(camera_follow.run_in_state(AppState::RoundOnline));
-        // app.add_startup_system(setup_game_camera)
-        //     .add_system_to_stage(RenderStage::Camera, camera_move)
-        //     .add_system_set_to_stage(
-        //         RenderStage::RenderPostUpdate,
-        //         SystemSet::new().with_system(position_translation).with_system(size_scaling),
-        //     );
     }
 }
