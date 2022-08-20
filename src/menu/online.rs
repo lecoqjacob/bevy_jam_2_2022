@@ -19,7 +19,7 @@ pub struct LobbyCodeText;
 
 pub struct LobbyID(String);
 
-pub fn setup_ui(mut commands: Commands, font_assets: Res<FontAssets>) {
+pub fn setup_online_ui(mut commands: Commands, font_assets: Res<FontAssets>) {
     // lobby id resource
     commands.insert_resource(LobbyID("".to_owned()));
 
@@ -213,6 +213,7 @@ pub fn btn_visuals(
             Some(e) => e.0,
             None => true,
         };
+
         if changeable {
             match *interaction {
                 Interaction::Clicked => {
@@ -267,8 +268,20 @@ pub fn btn_listeners(
     }
 }
 
-pub fn cleanup_ui(query: Query<Entity, With<MenuOnlineUI>>, mut commands: Commands) {
-    for e in query.iter() {
-        commands.entity(e).despawn_recursive();
+pub struct OnlineMenuPlugin;
+impl Plugin for OnlineMenuPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_enter_system(AppState::MenuOnline, setup_online_ui)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(AppState::MenuOnline)
+                    .with_system(update_lobby_id)
+                    .with_system(update_lobby_id_display)
+                    .with_system(update_lobby_btn)
+                    .with_system(btn_visuals)
+                    .with_system(btn_listeners)
+                    .into(),
+            )
+            .add_exit_system(AppState::MenuOnline, despawn_all_with::<MenuOnlineUI>);
     }
 }

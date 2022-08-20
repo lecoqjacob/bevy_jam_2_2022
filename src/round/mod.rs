@@ -1,14 +1,19 @@
-use bevy::{math::Vec3Swizzles, prelude::*};
+// This is the folder to handle the `round` or `in_game` state
+
+use crate::prelude::*;
+use bevy::math::Vec3Swizzles;
 use bevy_ggrs::{Rollback, RollbackIdProvider, SessionType};
 use bytemuck::{Pod, Zeroable};
 use ggrs::{InputStatus, P2PSession, PlayerHandle};
-use iyes_loopless::state::NextState;
 
 use crate::{
     checksum::Checksum,
     menu::{connect::LocalHandles, win::MatchData},
     AppState, GGRSConfig, NUM_PLAYERS,
 };
+
+mod local;
+mod online;
 
 const INPUT_UP: u8 = 0b0001;
 const INPUT_DOWN: u8 = 0b0010;
@@ -250,5 +255,32 @@ pub fn move_players(mut query: Query<(&mut Transform, &Velocity, &CarControls), 
         let bounds = (ARENA_SIZE - CUBE_SIZE) * 0.5;
         t.translation.x = t.translation.x.clamp(-bounds, bounds);
         t.translation.y = t.translation.y.clamp(-bounds, bounds);
+    }
+}
+
+pub struct RoundPlugin;
+impl Plugin for RoundPlugin {
+    fn build(&self, app: &mut App) {
+        // local round
+        app.add_enter_system_set(
+            AppState::RoundLocal,
+            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
+        )
+        .add_system(check_win.run_in_state(AppState::RoundLocal))
+        .add_exit_system(AppState::RoundLocal, cleanup);
+
+        // online round
+        app.add_enter_system_set(
+            AppState::RoundOnline,
+            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
+        )
+        .add_system_set(
+            ConditionSet::new()
+                .run_in_state(AppState::RoundOnline)
+                .with_system(print_p2p_events)
+                .with_system(check_win)
+                .into(),
+        )
+        .add_exit_system(AppState::RoundOnline, cleanup);
     }
 }

@@ -1,24 +1,14 @@
-use bevy::{prelude::*, tasks::IoTaskPool};
+use crate::{menu::*, GGRSConfig};
+use bevy::tasks::IoTaskPool;
 use bevy_ggrs::SessionType;
 use ggrs::{PlayerHandle, PlayerType, SessionBuilder};
-use iyes_loopless::state::NextState;
 use matchbox_socket::WebRtcSocket;
 
-use crate::{
-    AppState, FontAssets, GGRSConfig, BUTTON_TEXT, FPS, HOVERED_BUTTON, INPUT_DELAY, MAX_PREDICTION,
-    NORMAL_BUTTON, NUM_PLAYERS, PRESSED_BUTTON,
-};
+mod ui;
+use ui::ConnectUIPlugin;
 
 //const MATCHBOX_ADDR: &str = "ws://127.0.0.1:3536";
 const MATCHBOX_ADDR: &str = "wss://match.gschup.dev";
-
-#[derive(Component)]
-pub struct MenuConnectUI;
-
-#[derive(Component)]
-pub enum MenuConnectBtn {
-    Back,
-}
 
 pub struct LocalHandles {
     pub handles: Vec<PlayerHandle>,
@@ -49,113 +39,6 @@ pub fn update_matchbox_socket(mut commands: Commands, mut socket_res: ResMut<Opt
     }
 }
 
-pub fn setup_connect_ui(mut commands: Commands, font_assets: Res<FontAssets>) {
-    // root node
-    commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect::all(Val::Px(0.)),
-                flex_direction: FlexDirection::ColumnReverse,
-                align_content: AlignContent::Center,
-                align_items: AlignItems::Center,
-                align_self: AlignSelf::Center,
-                justify_content: JustifyContent::Center,
-                ..Default::default()
-            },
-            color: Color::NONE.into(),
-            ..Default::default()
-        })
-        .insert(MenuConnectUI)
-        .with_children(|parent| {
-            // lobby id display
-            parent.spawn_bundle(TextBundle {
-                style: Style {
-                    align_self: AlignSelf::Center,
-                    justify_content: JustifyContent::Center,
-                    ..Default::default()
-                },
-                text: Text::from_section(
-                    "Searching a match...",
-                    TextStyle { font: font_assets.fira_sans.clone(), font_size: 32., color: BUTTON_TEXT },
-                ),
-                ..Default::default()
-            });
-
-            // back button
-            parent
-                .spawn_bundle(ButtonBundle {
-                    style: Style {
-                        size: Size::new(Val::Px(250.0), Val::Px(65.0)),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        margin: UiRect::all(Val::Px(16.)),
-                        padding: UiRect::all(Val::Px(16.)),
-                        ..Default::default()
-                    },
-                    color: NORMAL_BUTTON.into(),
-                    ..Default::default()
-                })
-                .with_children(|parent| {
-                    parent.spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            "Back to Menu",
-                            TextStyle {
-                                font: font_assets.fira_sans.clone(),
-                                font_size: 40.0,
-                                color: BUTTON_TEXT,
-                            },
-                        ),
-                        ..Default::default()
-                    });
-                })
-                .insert(MenuConnectBtn::Back);
-        });
-}
-
-pub fn btn_visuals(
-    mut interaction_query: Query<(&Interaction, &mut UiColor), (Changed<Interaction>, With<MenuConnectBtn>)>,
-) {
-    for (interaction, mut color) in interaction_query.iter_mut() {
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
-
-pub fn btn_listeners(
-    mut commands: Commands,
-    mut interaction_query: Query<(&Interaction, &MenuConnectBtn), Changed<Interaction>>,
-) {
-    for (interaction, btn) in interaction_query.iter_mut() {
-        if let Interaction::Clicked = *interaction {
-            match btn {
-                MenuConnectBtn::Back => {
-                    commands.insert_resource(NextState(AppState::MenuMain));
-                }
-            }
-        }
-    }
-}
-
-pub fn cleanup_ui(query: Query<Entity, With<MenuConnectUI>>, mut commands: Commands) {
-    for e in query.iter() {
-        commands.entity(e).despawn_recursive();
-    }
-}
-
-pub fn cleanup(mut commands: Commands) {
-    commands.remove_resource::<Option<WebRtcSocket>>();
-}
-
 fn create_ggrs_session(commands: &mut Commands, socket: WebRtcSocket) {
     // create a new ggrs session
     let mut sess_build = SessionBuilder::<GGRSConfig>::new()
@@ -180,4 +63,19 @@ fn create_ggrs_session(commands: &mut Commands, socket: WebRtcSocket) {
     commands.insert_resource(sess);
     commands.insert_resource(LocalHandles { handles });
     commands.insert_resource(SessionType::P2PSession);
+}
+
+pub struct ConnectMenuPlugin;
+impl Plugin for ConnectMenuPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugin(ConnectUIPlugin);
+
+        app.add_enter_system(AppState::MenuConnect, create_matchbox_socket)
+            .add_system(
+                update_matchbox_socket
+                    .run_if_resource_exists::<Option<WebRtcSocket>>()
+                    .run_in_state(AppState::MenuConnect),
+            )
+            .add_exit_system(AppState::MenuConnect, remove_resource::<Option<WebRtcSocket>>);
+    }
 }

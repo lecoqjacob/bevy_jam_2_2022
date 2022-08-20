@@ -12,7 +12,7 @@ pub struct MatchData {
     pub result: String,
 }
 
-pub fn setup_ui(mut commands: Commands, match_data: Res<MatchData>, font_assets: Res<FontAssets>) {
+pub fn setup_win_ui(mut commands: Commands, match_data: Res<MatchData>, font_assets: Res<FontAssets>) {
     // root node
     commands
         .spawn_bundle(NodeBundle {
@@ -77,24 +77,6 @@ pub fn setup_ui(mut commands: Commands, match_data: Res<MatchData>, font_assets:
     commands.remove_resource::<MatchData>();
 }
 
-pub fn btn_visuals(
-    mut interaction_query: Query<(&Interaction, &mut UiColor), (Changed<Interaction>, With<MenuWinBtn>)>,
-) {
-    for (interaction, mut color) in interaction_query.iter_mut() {
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
-
 pub fn btn_listeners(
     mut state: ResMut<State<AppState>>,
     mut interaction_query: Query<(&Interaction, &MenuWinBtn), Changed<Interaction>>,
@@ -110,8 +92,18 @@ pub fn btn_listeners(
     }
 }
 
-pub fn cleanup_ui(query: Query<Entity, With<WinUI>>, mut commands: Commands) {
-    for e in query.iter() {
-        commands.entity(e).despawn_recursive();
+pub struct WinMenuPlugin;
+impl Plugin for WinMenuPlugin {
+    fn build(&self, app: &mut App) {
+        // win menu
+        app.add_enter_system(AppState::Win, setup_win_ui)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(AppState::Win)
+                    .with_system(btn_visuals::<MenuWinBtn>)
+                    .with_system(btn_listeners)
+                    .into(),
+            )
+            .add_exit_system(AppState::Win, despawn_all_with::<WinUI>);
     }
 }

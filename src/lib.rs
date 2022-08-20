@@ -38,32 +38,25 @@ mod prelude {
     pub const SCREEN_WIDTH: i32 = 80;
     pub const SCREEN_HEIGHT: i32 = 60;
     pub const UI_HEIGHT: i32 = 10;
+
+    pub const NUM_PLAYERS: usize = 2;
+    pub const FPS: usize = 60;
+    pub const ROLLBACK_SYSTEMS: &str = "rollback_systems";
+    pub const CHECKSUM_UPDATE: &str = "checksum_update";
+    pub const MAX_PREDICTION: usize = 12;
+    pub const INPUT_DELAY: usize = 2;
+    pub const CHECK_DISTANCE: usize = 2;
 }
 
-use matchbox_socket::WebRtcSocket;
 pub use prelude::*;
 
 pub const LAUNCHER_TITLE: &str = "Bevy Shell - Template";
 
-const NUM_PLAYERS: usize = 2;
-const FPS: usize = 60;
-const ROLLBACK_SYSTEMS: &str = "rollback_systems";
-const CHECKSUM_UPDATE: &str = "checksum_update";
-const MAX_PREDICTION: usize = 12;
-const INPUT_DELAY: usize = 2;
-const CHECK_DISTANCE: usize = 2;
-
-const DISABLED_BUTTON: Color = Color::rgb(0.8, 0.5, 0.5);
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
-const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
-
 #[derive(Debug)]
 pub struct GGRSConfig;
 impl Config for GGRSConfig {
-    type Input = round::Input;
     type State = u8;
+    type Input = round::Input;
     type Address = String;
 }
 
@@ -106,78 +99,10 @@ pub fn app() -> App {
         )
         .build(&mut app);
 
-    app.add_loopless_state(AppState::AssetLoading).add_plugins(DefaultPlugins).add_plugin(LoadingPlugin);
-
-    // main menu
-    app.add_enter_system(AppState::MenuMain, menu::main::setup_ui)
-        .add_system_set(
-            ConditionSet::new()
-                .run_in_state(AppState::MenuMain)
-                .with_system(menu::main::btn_visuals)
-                .with_system(menu::main::btn_listeners)
-                .into(),
-        )
-        .add_exit_system(AppState::MenuMain, menu::main::cleanup_ui);
-
-    //online menu
-    app.add_enter_system(AppState::MenuOnline, menu::online::setup_ui)
-        .add_system_set(
-            ConditionSet::new()
-                .run_in_state(AppState::MenuOnline)
-                .with_system(update_lobby_id)
-                .with_system(update_lobby_id_display)
-                .with_system(update_lobby_btn)
-                .with_system(menu::online::btn_visuals)
-                .with_system(menu::online::btn_listeners)
-                .into(),
-        )
-        .add_exit_system(AppState::MenuOnline, menu::online::cleanup_ui);
-
-    // connect menu
-    app.add_enter_system_set(
-        AppState::MenuConnect,
-        ConditionSet::new()
-            .with_system(create_matchbox_socket)
-            .with_system(menu::connect::setup_connect_ui)
-            .into(),
-    )
-    .add_system_set(
-        ConditionSet::new()
-            .run_in_state(AppState::MenuConnect)
-            .with_system(update_matchbox_socket.run_if_resource_exists::<Option<WebRtcSocket>>())
-            .with_system(menu::connect::btn_visuals)
-            .with_system(menu::connect::btn_listeners)
-            .into(),
-    )
-    .add_exit_system_set(
-        AppState::MenuConnect,
-        ConditionSet::new()
-            .with_system(menu::connect::cleanup)
-            .with_system(menu::connect::cleanup_ui)
-            .into(),
-    );
-
-    // local round
-    app.add_enter_system_set(
-        AppState::RoundLocal,
-        ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
-    )
-    .add_system(check_win.run_in_state(AppState::RoundLocal))
-    .add_exit_system(AppState::RoundLocal, round::cleanup);
-
-    // online round
-    app.add_enter_system_set(
-        AppState::RoundOnline,
-        ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
-    )
-    .add_system_set(
-        ConditionSet::new()
-            .run_in_state(AppState::RoundOnline)
-            .with_system(print_p2p_events)
-            .with_system(check_win)
-            .into(),
-    )
-    .add_exit_system(AppState::RoundOnline, round::cleanup);
+    app.add_loopless_state(AppState::AssetLoading)
+        .add_plugins(DefaultPlugins)
+        .add_plugin(LoadingPlugin)
+        .add_plugins(MenuPlugins);
 
     app
 }

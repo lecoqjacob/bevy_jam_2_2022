@@ -1,3 +1,5 @@
+// This is the folder to handle all menu states
+
 use crate::prelude::*;
 
 pub mod connect;
@@ -17,9 +19,27 @@ const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 
+pub fn btn_visuals<BTN: Component>(
+    mut interaction_query: Query<(&Interaction, &mut UiColor), (Changed<Interaction>, With<BTN>)>,
+) {
+    for (interaction, mut color) in interaction_query.iter_mut() {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
+        }
+    }
+}
+
 pub struct MenuPlugins;
 impl PluginGroup for MenuPlugins {
     fn build(&mut self, group: &mut bevy::app::PluginGroupBuilder) {
-        // group.add(ConnectPlugin);
+        group.add(MainMenuPlugin).add(ConnectMenuPlugin).add(OnlineMenuPlugin).add(WinMenuPlugin);
     }
 }

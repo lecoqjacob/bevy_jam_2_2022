@@ -1,10 +1,15 @@
 use crate::prelude::*;
+use bevy::ecs::system::Resource;
 
 // despawn all with specific component
 pub fn despawn_all_with<C: Component>(mut commands: Commands, query: Query<Entity, With<C>>) {
     for e in query.iter() {
         commands.entity(e).despawn_recursive();
     }
+}
+
+pub fn remove_resource<R: Resource>(mut commands: Commands) {
+    commands.remove_resource::<R>();
 }
 
 /// Load the specified spritesheet at return a handle to the resulting [`TextureAtlas`]

@@ -13,7 +13,11 @@ pub enum MenuMainBtn {
     Quit,
 }
 
-pub fn setup_ui(mut commands: Commands, image_assets: Res<TextureAssets>, font_assets: Res<FontAssets>) {
+pub fn setup_main_menu_ui(
+    mut commands: Commands,
+    image_assets: Res<TextureAssets>,
+    font_assets: Res<FontAssets>,
+) {
     // root node
     commands
         .spawn_bundle(NodeBundle {
@@ -133,24 +137,6 @@ pub fn setup_ui(mut commands: Commands, image_assets: Res<TextureAssets>, font_a
         .insert(MenuMainUI);
 }
 
-pub fn btn_visuals(
-    mut interaction_query: Query<(&Interaction, &mut UiColor), (Changed<Interaction>, With<MenuMainBtn>)>,
-) {
-    for (interaction, mut color) in interaction_query.iter_mut() {
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
-
 pub fn btn_listeners(
     mut commands: Commands,
     mut exit: EventWriter<AppExit>,
@@ -174,12 +160,6 @@ pub fn btn_listeners(
     }
 }
 
-pub fn cleanup_ui(query: Query<Entity, With<MenuMainUI>>, mut commands: Commands) {
-    for e in query.iter() {
-        commands.entity(e).despawn_recursive();
-    }
-}
-
 fn create_synctest_session(commands: &mut Commands) {
     let mut sess_build = SessionBuilder::<GGRSConfig>::new()
         .with_num_players(NUM_PLAYERS)
@@ -198,4 +178,19 @@ fn create_synctest_session(commands: &mut Commands) {
     commands.insert_resource(sess);
     commands.insert_resource(SessionType::SyncTestSession);
     commands.insert_resource(LocalHandles { handles: (0..NUM_PLAYERS).collect() });
+}
+
+pub struct MainMenuPlugin;
+impl Plugin for MainMenuPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_enter_system(AppState::MenuMain, setup_main_menu_ui)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(AppState::MenuMain)
+                    .with_system(btn_visuals::<MenuMainBtn>)
+                    .with_system(btn_listeners)
+                    .into(),
+            )
+            .add_exit_system(AppState::MenuMain, despawn_all_with::<MenuMainUI>);
+    }
 }
