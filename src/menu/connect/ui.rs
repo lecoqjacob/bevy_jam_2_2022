@@ -36,7 +36,11 @@ pub fn setup_connect_ui(mut commands: Commands, font_assets: Res<FontAssets>) {
                 },
                 text: Text::from_section(
                     "Searching a match...",
-                    TextStyle { font: font_assets.fira_sans.clone(), font_size: 32., color: BUTTON_TEXT },
+                    TextStyle {
+                        font: font_assets.fira_sans.clone(),
+                        font_size: 32.,
+                        color: BUTTON_TEXT,
+                    },
                 ),
                 ..Default::default()
             });

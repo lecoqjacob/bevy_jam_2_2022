@@ -12,7 +12,11 @@ pub struct MatchData {
     pub result: String,
 }
 
-pub fn setup_win_ui(mut commands: Commands, match_data: Res<MatchData>, font_assets: Res<FontAssets>) {
+pub fn setup_win_ui(
+    mut commands: Commands,
+    match_data: Res<MatchData>,
+    font_assets: Res<FontAssets>,
+) {
     // root node
     commands
         .spawn_bundle(NodeBundle {
@@ -39,7 +43,11 @@ pub fn setup_win_ui(mut commands: Commands, match_data: Res<MatchData>, font_ass
                 },
                 text: Text::from_section(
                     match_data.result.clone(),
-                    TextStyle { font: font_assets.fira_sans.clone(), font_size: 96., color: BUTTON_TEXT },
+                    TextStyle {
+                        font: font_assets.fira_sans.clone(),
+                        font_size: 96.,
+                        color: BUTTON_TEXT,
+                    },
                 ),
                 ..Default::default()
             });

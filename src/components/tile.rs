@@ -6,7 +6,9 @@ pub struct TileSize {
     pub height: f32,
 }
 impl TileSize {
-    pub fn square(x: f32) -> Self { Self { width: x, height: x } }
+    pub fn square(x: f32) -> Self {
+        Self { width: x, height: x }
+    }
 }
 
 #[derive(Component)]

@@ -8,8 +8,9 @@ fn set_window_icon(windows: NonSend<WinitWindows>) {
 
     let (icon_rgba, icon_width, icon_height) = {
         let icon_buf = Cursor::new(include_bytes!("../../../assets/bevy.png"));
-        let rgba =
-            image::load(icon_buf, image::ImageFormat::Png).expect("Failed to open icon path").into_rgba8();
+        let rgba = image::load(icon_buf, image::ImageFormat::Png)
+            .expect("Failed to open icon path")
+            .into_rgba8();
 
         let (width, height) = rgba.dimensions();
         let icon_raw = rgba.into_raw();
