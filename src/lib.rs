@@ -4,6 +4,7 @@
 mod camera;
 mod components;
 mod loading;
+mod map;
 mod menu;
 mod networking;
 mod random;
@@ -28,6 +29,7 @@ mod prelude {
     pub use crate::camera::*;
     pub use crate::components::*;
     pub use crate::loading::*;
+    pub use crate::map::*;
     pub use crate::menu::*;
     pub use crate::networking::*;
     pub use crate::random::*;
@@ -72,6 +74,7 @@ pub fn app() -> App {
         .add_plugin(CameraPlugin)
         .add_plugin(LoadingPlugin)
         .add_plugins(MenuPlugins)
+        .add_plugin(MapPlugin)
         .add_plugin(NetworkingPlugin)
         .add_plugin(RoundPlugin);
 
