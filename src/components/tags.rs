@@ -1,11 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub enum Facing {
+    #[default]
+    Down,
+    Up,
     Left,
     Right,
-    Up,
-    Down,
 }
 
 impl Facing {
@@ -19,8 +20,8 @@ impl Facing {
     }
 }
 
-#[derive(Component)]
+#[derive(Default, Component)]
 pub struct Player {
-    pub map_level: i32,
+    pub handle: usize,
     pub facing: Facing,
 }

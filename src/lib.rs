@@ -2,15 +2,16 @@
 #![allow(clippy::too_many_arguments)]
 
 mod camera;
-mod checksum;
 mod components;
 mod loading;
 mod map;
 mod menu;
+mod networking;
 mod random;
 mod round;
 mod state;
 mod utils;
+mod world_gen;
 
 mod prelude {
     pub use bevy::prelude::*;
@@ -25,17 +26,17 @@ mod prelude {
     pub use bracket_pathfinding::prelude::*;
     pub use bracket_random::prelude::*;
 
-    pub use crate::checksum::*;
-    pub use crate::menu::*;
-    pub use crate::round::*;
-
     pub use crate::camera::*;
     pub use crate::components::*;
     pub use crate::loading::*;
     pub use crate::map::*;
+    pub use crate::menu::*;
+    pub use crate::networking::*;
     pub use crate::random::*;
+    pub use crate::round::*;
     pub use crate::state::*;
     pub use crate::utils::*;
+    pub use crate::world_gen::*;
 
     pub const SCREEN_WIDTH: i32 = 80;
     pub const SCREEN_HEIGHT: i32 = 60;
@@ -54,14 +55,6 @@ pub use prelude::*;
 
 pub const LAUNCHER_TITLE: &str = "Bevy Shell - Template";
 
-#[derive(Debug)]
-pub struct GGRSConfig;
-impl Config for GGRSConfig {
-    type State = u8;
-    type Input = round::Input;
-    type Address = String;
-}
-
 pub fn app() -> App {
     let mut app = App::new();
 
@@ -76,36 +69,14 @@ pub fn app() -> App {
     .insert_resource(ImageSettings::default_nearest())
     .insert_resource(ClearColor(Color::hex("171717").unwrap()));
 
-    GGRSPlugin::<GGRSConfig>::new()
-        .with_update_frequency(FPS)
-        .with_input_system(round::input)
-        .register_rollback_type::<Transform>()
-        .register_rollback_type::<Velocity>()
-        .register_rollback_type::<FrameCount>()
-        .register_rollback_type::<Checksum>()
-        .with_rollback_schedule(
-            Schedule::default()
-                .with_stage(
-                    ROLLBACK_SYSTEMS,
-                    SystemStage::parallel()
-                        .with_system(apply_inputs.label(SystemLabels::Input))
-                        .with_system(update_velocity.label(SystemLabels::Velocity).after(SystemLabels::Input))
-                        .with_system(move_players.after(SystemLabels::Velocity))
-                        .with_system(increase_frame_count),
-                )
-                .with_stage_after(
-                    ROLLBACK_SYSTEMS,
-                    CHECKSUM_UPDATE,
-                    SystemStage::parallel().with_system(checksum_players),
-                ),
-        )
-        .build(&mut app);
-
     app.add_loopless_state(AppState::AssetLoading)
         .add_plugins(DefaultPlugins)
+        .add_plugin(CameraPlugin)
         .add_plugin(LoadingPlugin)
         .add_plugins(MenuPlugins)
-        .add_plugin(MapPlugin);
+        .add_plugin(MapPlugin)
+        .add_plugin(NetworkingPlugin)
+        .add_plugin(RoundPlugin);
 
     app
 }
