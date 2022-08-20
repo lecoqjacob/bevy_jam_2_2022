@@ -27,7 +27,7 @@ pub struct TextureAssets {
     #[asset(path = "bevy.png")]
     pub bevy_logo: Handle<Image>,
 
-    #[asset(path = "bevy.png")]
+    #[asset(path = "tiles.png")]
     pub tiles: Handle<Image>,
 }
 
