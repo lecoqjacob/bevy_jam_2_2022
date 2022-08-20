@@ -17,7 +17,8 @@ impl RandomNumbers {
     /// Returns a random value of whatever type you specify
     pub fn rand<T>(&self) -> T
     where
-        bracket_random::rand::distributions::Standard: bracket_random::rand::distributions::Distribution<T>,
+        bracket_random::rand::distributions::Standard:
+            bracket_random::rand::distributions::Distribution<T>,
     {
         self.rng.lock().rand::<T>()
     }

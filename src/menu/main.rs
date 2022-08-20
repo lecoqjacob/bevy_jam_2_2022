@@ -170,7 +170,8 @@ fn create_synctest_session(commands: &mut Commands) {
         .with_check_distance(CHECK_DISTANCE);
 
     for i in 0..NUM_PLAYERS {
-        sess_build = sess_build.add_player(PlayerType::Local, i).expect("Could not add local player");
+        sess_build =
+            sess_build.add_player(PlayerType::Local, i).expect("Could not add local player");
     }
 
     let sess = sess_build.start_synctest_session().expect("");

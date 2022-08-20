@@ -32,10 +32,9 @@ pub struct TextureAssets {
     // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 8, rows = 4))]
     // #[asset(path = "textures/Potion.png")]
     // pub potions: Handle<TextureAtlas>,
-
     // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 4, rows = 4))]
-    // #[asset(path = "textures/Rogue.png")]
-    // pub rogue: Handle<TextureAtlas>,
+    #[asset(path = "textures/man_blue_stand.png")]
+    pub man_blue: Handle<Image>,
 
     // #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 20, rows = 51))]
     // #[asset(path = "textures/Wall.png")]
@@ -68,8 +67,6 @@ pub struct FontAssets {
 pub struct LoadingMenu;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(Camera2dBundle::default());
-
     // Loading Menu
     commands
         .spawn_bundle(NodeBundle {

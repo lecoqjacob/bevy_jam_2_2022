@@ -6,19 +6,11 @@ use bevy_ggrs::{Rollback, RollbackIdProvider, SessionType};
 use bytemuck::{Pod, Zeroable};
 use ggrs::{InputStatus, P2PSession, PlayerHandle};
 
-use crate::{
-    checksum::Checksum,
-    menu::{connect::LocalHandles, win::MatchData},
-    AppState, GGRSConfig, NUM_PLAYERS,
-};
-
-mod local;
-mod online;
-
-const INPUT_UP: u8 = 0b0001;
-const INPUT_DOWN: u8 = 0b0010;
-const INPUT_LEFT: u8 = 0b0100;
-const INPUT_RIGHT: u8 = 0b1000;
+const INPUT_UP: u8 = 1 << 0;
+const INPUT_DOWN: u8 = 1 << 1;
+const INPUT_LEFT: u8 = 1 << 2;
+const INPUT_RIGHT: u8 = 1 << 3;
+const INPUT_FIRE: u8 = 1 << 4;
 
 const BLUE: Color = Color::rgb(0.8, 0.6, 0.2);
 const ORANGE: Color = Color::rgb(0., 0.35, 0.8);
@@ -37,13 +29,8 @@ const CUBE_SIZE: f32 = 0.2;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Pod, Zeroable)]
-pub struct Input {
+pub struct GameInput {
     pub inp: u8,
-}
-
-#[derive(Default, Component)]
-pub struct Player {
-    pub handle: usize,
 }
 
 #[derive(Component)]
@@ -66,9 +53,9 @@ pub struct FrameCount {
 
 pub fn input(
     handle: In<PlayerHandle>,
-    keyboard_input: Res<bevy::input::Input<KeyCode>>,
     local_handles: Res<LocalHandles>,
-) -> Input {
+    keyboard_input: Res<Input<KeyCode>>,
+) -> GameInput {
     let mut inp: u8 = 0;
 
     if handle.0 == local_handles.handles[0] {
@@ -98,27 +85,85 @@ pub fn input(
             inp |= INPUT_RIGHT;
         }
     }
+    // if handle.0 == local_handles.handles[0] {
+    //     if let Some(key) = keyboard_input.get_key() {
+    //         match key {
+    //             GameKey::LocalUp => inp |= INPUT_UP,
+    //             GameKey::LocalDown => inp |= INPUT_DOWN,
+    //             GameKey::LocalLeft => inp |= INPUT_LEFT,
+    //             GameKey::LocalRight => inp |= INPUT_RIGHT,
+    //             GameKey::LocalAttack => inp |= INPUT_FIRE,
+    //             GameKey::LocalPickup => println!("Pickup"),
+    //             _ => {}
+    //         }
+    //     }
+    // } else {
+    //     if let Some(key) = keyboard_input.get_key() {
+    //         match key {
+    //             GameKey::Up => inp |= INPUT_UP,
+    //             GameKey::Down => inp |= INPUT_DOWN,
+    //             GameKey::Left => inp |= INPUT_LEFT,
+    //             GameKey::Right => inp |= INPUT_RIGHT,
+    //             GameKey::Attack => inp |= INPUT_FIRE,
+    //             GameKey::Pickup => println!("Pickup"),
+    //             _ => {}
+    //         }
+    //     }
+    // }
 
-    Input { inp }
+    GameInput { inp }
 }
+
+const MAP_SIZE: u32 = 41;
+const GRID_WIDTH: f32 = 0.05;
 
 pub fn setup_round(mut commands: Commands) {
     commands.insert_resource(FrameCount::default());
 
-    commands
-        .spawn_bundle(SpriteBundle {
-            transform: Transform::from_xyz(0., 0., 0.),
-            sprite: Sprite {
-                color: Color::BLACK,
-                custom_size: Some(Vec2::new(ARENA_SIZE, ARENA_SIZE)),
+    // Horizontal lines
+    for i in 0..=MAP_SIZE {
+        commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform::from_translation(Vec3::new(
+                    0.,
+                    i as f32 - MAP_SIZE as f32 / 2.,
+                    10.,
+                )),
+                sprite: Sprite {
+                    color: Color::rgb(0.27, 0.27, 0.27),
+                    // custom_size: Some(Vec2::new(MAP_SIZE as f32, GRID_WIDTH)),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(RoundEntity);
+            })
+            .insert(RoundEntity);
+    }
+
+    // Vertical lines
+    for i in 0..=MAP_SIZE {
+        commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform::from_translation(Vec3::new(
+                    i as f32 - MAP_SIZE as f32 / 2.,
+                    0.,
+                    10.,
+                )),
+                sprite: Sprite {
+                    color: Color::rgb(0.27, 0.27, 0.27),
+                    // custom_size: Some(Vec2::new(GRID_WIDTH, MAP_SIZE as f32)),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(RoundEntity);
+    }
 }
 
-pub fn spawn_players(mut commands: Commands, mut rip: ResMut<RollbackIdProvider>) {
+pub fn spawn_players(
+    mut commands: Commands,
+    textures: Res<TextureAssets>,
+    mut rip: ResMut<RollbackIdProvider>,
+) {
     let r = ARENA_SIZE / 4.;
 
     for (handle, color) in PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
@@ -132,6 +177,7 @@ pub fn spawn_players(mut commands: Commands, mut rip: ResMut<RollbackIdProvider>
         commands
             .spawn_bundle(SpriteBundle {
                 transform,
+                texture: textures.man_blue.clone(),
                 sprite: Sprite {
                     color: *color,
                     custom_size: Some(Vec2::new(PLAYER_SIZE * 0.5, PLAYER_SIZE)),
@@ -139,7 +185,7 @@ pub fn spawn_players(mut commands: Commands, mut rip: ResMut<RollbackIdProvider>
                 },
                 ..Default::default()
             })
-            .insert(Player { handle })
+            .insert(Player { handle, facing: Facing::Down })
             .insert(Velocity::default())
             .insert(CarControls::default())
             .insert(Checksum::default())
@@ -164,15 +210,11 @@ pub fn check_win(mut commands: Commands) {
     }
 }
 
-pub fn cleanup(query: Query<Entity, With<RoundEntity>>, mut commands: Commands) {
+pub fn cleanup_round(mut commands: Commands) {
     commands.remove_resource::<FrameCount>();
     commands.remove_resource::<LocalHandles>();
     commands.remove_resource::<P2PSession<GGRSConfig>>();
     commands.remove_resource::<SessionType>();
-
-    for e in query.iter() {
-        commands.entity(e).despawn_recursive();
-    }
 }
 
 /*
@@ -183,7 +225,10 @@ pub fn increase_frame_count(mut frame_count: ResMut<FrameCount>) {
     frame_count.frame += 1;
 }
 
-pub fn apply_inputs(mut query: Query<(&mut CarControls, &Player)>, inputs: Res<Vec<(Input, InputStatus)>>) {
+pub fn apply_inputs(
+    mut query: Query<(&mut CarControls, &Player)>,
+    inputs: Res<Vec<(GameInput, InputStatus)>>,
+) {
     for (mut c, p) in query.iter_mut() {
         let input = match inputs[p.handle].1 {
             InputStatus::Confirmed => inputs[p.handle].0.inp,
@@ -258,17 +303,9 @@ pub fn move_players(mut query: Query<(&mut Transform, &Velocity, &CarControls), 
     }
 }
 
-pub struct RoundPlugin;
-impl Plugin for RoundPlugin {
+pub struct OnlineRoundPlugin;
+impl Plugin for OnlineRoundPlugin {
     fn build(&self, app: &mut App) {
-        // local round
-        app.add_enter_system_set(
-            AppState::RoundLocal,
-            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
-        )
-        .add_system(check_win.run_in_state(AppState::RoundLocal))
-        .add_exit_system(AppState::RoundLocal, cleanup);
-
         // online round
         app.add_enter_system_set(
             AppState::RoundOnline,
@@ -281,6 +318,38 @@ impl Plugin for RoundPlugin {
                 .with_system(check_win)
                 .into(),
         )
-        .add_exit_system(AppState::RoundOnline, cleanup);
+        .add_exit_system_set(
+            AppState::RoundOnline,
+            ConditionSet::new()
+                .with_system(cleanup_round)
+                .with_system(despawn_all_with::<RoundEntity>)
+                .into(),
+        );
+    }
+}
+
+pub struct LocalRoundPlugin;
+impl Plugin for LocalRoundPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_enter_system_set(
+            AppState::RoundLocal,
+            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
+        )
+        .add_system(check_win.run_in_state(AppState::RoundLocal))
+        .add_exit_system_set(
+            AppState::RoundLocal,
+            ConditionSet::new()
+                .with_system(cleanup_round)
+                .with_system(despawn_all_with::<RoundEntity>)
+                .into(),
+        );
+    }
+}
+
+pub struct RoundPlugin;
+impl Plugin for RoundPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugin(LocalRoundPlugin);
+        app.add_plugin(OnlineRoundPlugin);
     }
 }

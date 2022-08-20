@@ -2,75 +2,61 @@ use crate::prelude::*;
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum GameKey {
-    // Movement
+    // These are local keys for when the game is running locally
+    LocalUp,
+    LocalDown,
+    LocalLeft,
+    LocalRight,
+    LocalAttack,
+    LocalPickup,
+
+    // These are remote keys for when the game is running online
     Up,
     Down,
     Left,
     Right,
-    LeftUp,
-    LeftDown,
-    RightUp,
-    RightDown,
-    // Actions
-    TakeStairs,
-    Escape,
-    Select,
-    SkipTurn,
+    Attack,
     Pickup,
-    Inventory,
-    Drop,
-    Remove,
-    Apply,
-    Equip,
 }
 
 fn keycode_to_gamekey(key: KeyCode) -> Option<GameKey> {
     match key {
-        // Movement
-        KeyCode::Up | KeyCode::Numpad8 | KeyCode::K => Some(GameKey::Up),
-        KeyCode::Down | KeyCode::Numpad2 | KeyCode::J => Some(GameKey::Down),
-        KeyCode::Left | KeyCode::Numpad4 | KeyCode::H => Some(GameKey::Left),
-        KeyCode::Right | KeyCode::Numpad6 | KeyCode::L => Some(GameKey::Right),
-        KeyCode::Y | KeyCode::Numpad7 => Some(GameKey::LeftUp),
-        KeyCode::U | KeyCode::Numpad9 => Some(GameKey::RightUp),
-        KeyCode::B | KeyCode::Numpad1 => Some(GameKey::LeftDown),
-        KeyCode::N | KeyCode::Numpad3 => Some(GameKey::RightDown),
+        // Local Keys
+        KeyCode::W => Some(GameKey::Up),
+        KeyCode::S => Some(GameKey::Down),
+        KeyCode::A => Some(GameKey::Left),
+        KeyCode::D => Some(GameKey::Right),
+        KeyCode::L => Some(GameKey::Pickup),
+        KeyCode::RShift => Some(GameKey::Attack),
 
-        // Actions
-        KeyCode::Period => Some(GameKey::TakeStairs),
-        KeyCode::Escape => Some(GameKey::Escape),
-        KeyCode::Return => Some(GameKey::Select),
-        KeyCode::Space => Some(GameKey::SkipTurn),
+        // Online Keys
+        KeyCode::Up => Some(GameKey::Up),
+        KeyCode::Down => Some(GameKey::Down),
+        KeyCode::Left => Some(GameKey::Left),
+        KeyCode::Right => Some(GameKey::Right),
         KeyCode::G => Some(GameKey::Pickup),
-        KeyCode::I => Some(GameKey::Inventory),
-        KeyCode::D => Some(GameKey::Drop),
-        KeyCode::R => Some(GameKey::Remove),
-        KeyCode::A => Some(GameKey::Apply),
-        KeyCode::E => Some(GameKey::Equip),
+        KeyCode::Space => Some(GameKey::Attack),
         _ => None,
     }
 }
 
 fn gamekey_to_keycode(key: GameKey) -> Vec<KeyCode> {
     match key {
-        GameKey::Up => vec![KeyCode::Up, KeyCode::Numpad8, KeyCode::K],
-        GameKey::Down => vec![KeyCode::Down, KeyCode::Numpad2, KeyCode::J],
-        GameKey::Left => vec![KeyCode::Left, KeyCode::Numpad4, KeyCode::H],
-        GameKey::Right => vec![KeyCode::Right, KeyCode::Numpad6, KeyCode::L],
-        GameKey::LeftUp => vec![KeyCode::Y, KeyCode::Numpad7],
-        GameKey::LeftDown => vec![KeyCode::B, KeyCode::Numpad1],
-        GameKey::RightUp => vec![KeyCode::U, KeyCode::Numpad9],
-        GameKey::RightDown => vec![KeyCode::N, KeyCode::Numpad3],
-        GameKey::TakeStairs => vec![KeyCode::Period],
-        GameKey::Escape => vec![KeyCode::Escape],
-        GameKey::Select => vec![KeyCode::Return],
-        GameKey::SkipTurn => vec![KeyCode::Space],
+        // Local Keys
+        GameKey::LocalUp => vec![KeyCode::W],
+        GameKey::LocalDown => vec![KeyCode::S],
+        GameKey::LocalPickup => vec![KeyCode::L],
+        GameKey::LocalLeft => vec![KeyCode::Left],
+        GameKey::LocalRight => vec![KeyCode::Right],
+        GameKey::LocalAttack => vec![KeyCode::RShift],
+
+        // Online Keys
+        GameKey::Up => vec![KeyCode::Up],
+        GameKey::Down => vec![KeyCode::Down],
+        GameKey::Left => vec![KeyCode::Left],
+        GameKey::Right => vec![KeyCode::Right],
         GameKey::Pickup => vec![KeyCode::G],
-        GameKey::Inventory => vec![KeyCode::I],
-        GameKey::Drop => vec![KeyCode::D],
-        GameKey::Remove => vec![KeyCode::R],
-        GameKey::Apply => vec![KeyCode::A],
-        GameKey::Equip => vec![KeyCode::E],
+        GameKey::Attack => vec![KeyCode::Space],
     }
 }
 

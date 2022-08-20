@@ -182,7 +182,10 @@ pub fn update_lobby_id(
     }
 }
 
-pub fn update_lobby_id_display(mut query: Query<&mut Text, With<LobbyCodeText>>, lobby_id: ResMut<LobbyID>) {
+pub fn update_lobby_id_display(
+    mut query: Query<&mut Text, With<LobbyCodeText>>,
+    lobby_id: ResMut<LobbyID>,
+) {
     for mut text in query.iter_mut() {
         text.sections[1].value = lobby_id.0.clone();
     }
@@ -206,7 +209,10 @@ pub fn update_lobby_btn(
 }
 
 pub fn btn_visuals(
-    mut interaction_query: Query<(&Interaction, &mut UiColor, Option<&ButtonEnabled>), With<MenuOnlineBtn>>,
+    mut interaction_query: Query<
+        (&Interaction, &mut UiColor, Option<&ButtonEnabled>),
+        With<MenuOnlineBtn>,
+    >,
 ) {
     for (interaction, mut color, enabled) in interaction_query.iter_mut() {
         let changeable = match enabled {
@@ -253,7 +259,8 @@ pub fn btn_listeners(
         if let Interaction::Clicked = *interaction {
             match btn {
                 MenuOnlineBtn::LobbyMatch => {
-                    commands.insert_resource(ConnectData { lobby_id: format!("bevy{}", lobby_id.0) });
+                    commands
+                        .insert_resource(ConnectData { lobby_id: format!("bevy{}", lobby_id.0) });
                     commands.insert_resource(NextState(AppState::MenuConnect));
                 }
                 MenuOnlineBtn::QuickMatch => {

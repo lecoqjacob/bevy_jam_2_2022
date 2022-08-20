@@ -10,6 +10,7 @@ use ui::ConnectUIPlugin;
 //const MATCHBOX_ADDR: &str = "ws://127.0.0.1:3536";
 const MATCHBOX_ADDR: &str = "wss://match.gschup.dev";
 
+#[derive(Debug)]
 pub struct LocalHandles {
     pub handles: Vec<PlayerHandle>,
 }
@@ -27,7 +28,10 @@ pub fn create_matchbox_socket(mut commands: Commands, connect_data: Res<ConnectD
     commands.remove_resource::<ConnectData>();
 }
 
-pub fn update_matchbox_socket(mut commands: Commands, mut socket_res: ResMut<Option<WebRtcSocket>>) {
+pub fn update_matchbox_socket(
+    mut commands: Commands,
+    mut socket_res: ResMut<Option<WebRtcSocket>>,
+) {
     if let Some(socket) = socket_res.as_mut() {
         socket.accept_new_connections();
         if socket.players().len() >= NUM_PLAYERS {
