@@ -35,7 +35,7 @@ fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
                 .spawn()
                 .insert_bundle(TileBundle {
                     position: tile_pos,
-                    texture: TileTexture(1),
+                    texture: TileTexture(0),
                     tilemap_id: TilemapId(tilemap_entity),
                     ..Default::default()
                 })

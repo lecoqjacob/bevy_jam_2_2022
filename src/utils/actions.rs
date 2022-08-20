@@ -19,93 +19,61 @@ pub enum GameKey {
     Pickup,
 }
 
-fn keycode_to_gamekey(key: KeyCode) -> Option<GameKey> {
-    match key {
-        // Local Keys
-        KeyCode::W => Some(GameKey::Up),
-        KeyCode::S => Some(GameKey::Down),
-        KeyCode::A => Some(GameKey::Left),
-        KeyCode::D => Some(GameKey::Right),
-        KeyCode::L => Some(GameKey::Pickup),
-        KeyCode::RShift => Some(GameKey::Attack),
-
-        // Online Keys
-        KeyCode::Up => Some(GameKey::Up),
-        KeyCode::Down => Some(GameKey::Down),
-        KeyCode::Left => Some(GameKey::Left),
-        KeyCode::Right => Some(GameKey::Right),
-        KeyCode::G => Some(GameKey::Pickup),
-        KeyCode::Space => Some(GameKey::Attack),
-        _ => None,
-    }
-}
-
-fn gamekey_to_keycode(key: GameKey) -> Vec<KeyCode> {
-    match key {
-        // Local Keys
-        GameKey::LocalUp => vec![KeyCode::W],
-        GameKey::LocalDown => vec![KeyCode::S],
-        GameKey::LocalPickup => vec![KeyCode::L],
-        GameKey::LocalLeft => vec![KeyCode::Left],
-        GameKey::LocalRight => vec![KeyCode::Right],
-        GameKey::LocalAttack => vec![KeyCode::RShift],
-
-        // Online Keys
-        GameKey::Up => vec![KeyCode::Up],
-        GameKey::Down => vec![KeyCode::Down],
-        GameKey::Left => vec![KeyCode::Left],
-        GameKey::Right => vec![KeyCode::Right],
-        GameKey::Pickup => vec![KeyCode::G],
-        GameKey::Attack => vec![KeyCode::Space],
-    }
-}
-
-pub trait VirtualGameKey {
-    fn get_key(&self) -> Option<GameKey>;
-}
-
-pub trait VirtualInput {
-    fn reset_key(&mut self, game_key: GameKey);
-}
-
-impl VirtualGameKey for KeyCode {
-    fn get_key(&self) -> Option<GameKey> {
-        keycode_to_gamekey(*self)
-    }
-}
-
-impl VirtualGameKey for Option<KeyCode> {
-    fn get_key(&self) -> Option<GameKey> {
+impl GameKey {
+    pub fn just_released(&self, keyboard_input: &Res<Input<KeyCode>>) -> bool {
         match self {
-            Some(key) => keycode_to_gamekey(*key),
-            None => None,
+            // Local
+            GameKey::LocalUp => keyboard_input.just_released(KeyCode::W),
+            GameKey::LocalDown => keyboard_input.just_released(KeyCode::S),
+            GameKey::LocalLeft => keyboard_input.just_released(KeyCode::A),
+            GameKey::LocalRight => keyboard_input.just_released(KeyCode::D),
+            GameKey::LocalPickup => keyboard_input.just_released(KeyCode::G),
+            GameKey::LocalAttack => keyboard_input.just_released(KeyCode::Space),
+            //Online
+            GameKey::Up => keyboard_input.just_released(KeyCode::Up),
+            GameKey::Down => keyboard_input.just_released(KeyCode::Down),
+            GameKey::Left => keyboard_input.just_released(KeyCode::Left),
+            GameKey::Right => keyboard_input.just_released(KeyCode::Right),
+            GameKey::Pickup => keyboard_input.just_released(KeyCode::Return),
+            GameKey::Attack => keyboard_input.just_released(KeyCode::RShift),
         }
     }
-}
 
-impl VirtualGameKey for Option<&KeyCode> {
-    fn get_key(&self) -> Option<GameKey> {
-        if let Some(key) = self.as_deref() {
-            keycode_to_gamekey(*key)
-        } else {
-            None
+    pub fn pressed(&self, keyboard_input: &Res<Input<KeyCode>>) -> bool {
+        match self {
+            // Local
+            GameKey::LocalUp => keyboard_input.pressed(KeyCode::W),
+            GameKey::LocalDown => keyboard_input.pressed(KeyCode::S),
+            GameKey::LocalLeft => keyboard_input.pressed(KeyCode::A),
+            GameKey::LocalRight => keyboard_input.pressed(KeyCode::D),
+            GameKey::LocalPickup => keyboard_input.pressed(KeyCode::G),
+            GameKey::LocalAttack => keyboard_input.pressed(KeyCode::Space),
+            //Online
+            GameKey::Up => keyboard_input.pressed(KeyCode::Up),
+            GameKey::Down => keyboard_input.pressed(KeyCode::Down),
+            GameKey::Left => keyboard_input.pressed(KeyCode::Left),
+            GameKey::Right => keyboard_input.pressed(KeyCode::Right),
+            GameKey::Pickup => keyboard_input.pressed(KeyCode::Return),
+            GameKey::Attack => keyboard_input.pressed(KeyCode::RShift),
         }
     }
-}
 
-impl VirtualGameKey for Input<KeyCode> {
-    fn get_key(&self) -> Option<GameKey> {
-        if let Some(key) = self.get_pressed().next() {
-            keycode_to_gamekey(*key)
-        } else {
-            None
+    pub fn just_pressed(&self, keyboard_input: &Res<Input<KeyCode>>) -> bool {
+        match self {
+            // Local
+            GameKey::LocalUp => keyboard_input.just_pressed(KeyCode::W),
+            GameKey::LocalDown => keyboard_input.just_pressed(KeyCode::S),
+            GameKey::LocalLeft => keyboard_input.just_pressed(KeyCode::A),
+            GameKey::LocalRight => keyboard_input.just_pressed(KeyCode::D),
+            GameKey::LocalPickup => keyboard_input.just_pressed(KeyCode::G),
+            GameKey::LocalAttack => keyboard_input.just_pressed(KeyCode::Space),
+            //Online
+            GameKey::Up => keyboard_input.just_pressed(KeyCode::Up),
+            GameKey::Down => keyboard_input.just_pressed(KeyCode::Down),
+            GameKey::Left => keyboard_input.just_pressed(KeyCode::Left),
+            GameKey::Right => keyboard_input.just_pressed(KeyCode::Right),
+            GameKey::Pickup => keyboard_input.just_pressed(KeyCode::Return),
+            GameKey::Attack => keyboard_input.just_pressed(KeyCode::RShift),
         }
-    }
-}
-
-impl VirtualInput for Input<KeyCode> {
-    fn reset_key(&mut self, game_key: GameKey) {
-        let keys = gamekey_to_keycode(game_key);
-        keys.iter().for_each(|key| self.reset(*key));
     }
 }

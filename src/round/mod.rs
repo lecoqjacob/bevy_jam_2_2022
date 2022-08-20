@@ -10,7 +10,7 @@ const INPUT_UP: u8 = 1 << 0;
 const INPUT_DOWN: u8 = 1 << 1;
 const INPUT_LEFT: u8 = 1 << 2;
 const INPUT_RIGHT: u8 = 1 << 3;
-const INPUT_FIRE: u8 = 1 << 4;
+const INPUT_ATTACK: u8 = 1 << 4;
 
 const BLUE: Color = Color::rgb(0.8, 0.6, 0.2);
 const ORANGE: Color = Color::rgb(0., 0.35, 0.8);
@@ -20,7 +20,7 @@ const PLAYER_COLORS: [Color; 4] = [BLUE, ORANGE, MAGENTA, GREEN];
 
 const PLAYER_SIZE: f32 = 50.;
 const MOV_SPEED: f32 = 0.1;
-const ROT_SPEED: f32 = 0.05;
+const ROT_SPEED: f32 = 0.15;
 const MAX_SPEED: f32 = 7.5;
 const FRICTION: f32 = 0.98;
 const DRIFT: f32 = 0.95;
@@ -40,7 +40,7 @@ pub struct RoundEntity;
 pub struct Velocity(pub Vec2);
 
 #[derive(Default, Reflect, Component)]
-pub struct CarControls {
+pub struct PlayerControls {
     accel: f32,
     steer: f32,
 }
@@ -59,57 +59,38 @@ pub fn input(
     let mut inp: u8 = 0;
 
     if handle.0 == local_handles.handles[0] {
-        if keyboard_input.pressed(KeyCode::W) {
+        if GameKey::LocalUp.pressed(&keyboard_input) {
             inp |= INPUT_UP;
         }
-        if keyboard_input.pressed(KeyCode::A) {
+        if GameKey::LocalLeft.pressed(&keyboard_input) {
             inp |= INPUT_LEFT;
         }
-        if keyboard_input.pressed(KeyCode::S) {
+        if GameKey::LocalDown.pressed(&keyboard_input) {
             inp |= INPUT_DOWN;
         }
-        if keyboard_input.pressed(KeyCode::D) {
+        if GameKey::LocalRight.pressed(&keyboard_input) {
             inp |= INPUT_RIGHT;
+        }
+        if GameKey::LocalAttack.pressed(&keyboard_input) {
+            inp |= INPUT_ATTACK;
         }
     } else {
-        if keyboard_input.pressed(KeyCode::Up) {
+        if GameKey::Up.pressed(&keyboard_input) {
             inp |= INPUT_UP;
         }
-        if keyboard_input.pressed(KeyCode::Left) {
+        if GameKey::Left.pressed(&keyboard_input) {
             inp |= INPUT_LEFT;
         }
-        if keyboard_input.pressed(KeyCode::Down) {
+        if GameKey::Down.pressed(&keyboard_input) {
             inp |= INPUT_DOWN;
         }
-        if keyboard_input.pressed(KeyCode::Right) {
+        if GameKey::Right.pressed(&keyboard_input) {
             inp |= INPUT_RIGHT;
         }
+        if GameKey::Attack.pressed(&keyboard_input) {
+            inp |= INPUT_ATTACK;
+        }
     }
-    // if handle.0 == local_handles.handles[0] {
-    //     if let Some(key) = keyboard_input.get_key() {
-    //         match key {
-    //             GameKey::LocalUp => inp |= INPUT_UP,
-    //             GameKey::LocalDown => inp |= INPUT_DOWN,
-    //             GameKey::LocalLeft => inp |= INPUT_LEFT,
-    //             GameKey::LocalRight => inp |= INPUT_RIGHT,
-    //             GameKey::LocalAttack => inp |= INPUT_FIRE,
-    //             GameKey::LocalPickup => println!("Pickup"),
-    //             _ => {}
-    //         }
-    //     }
-    // } else {
-    //     if let Some(key) = keyboard_input.get_key() {
-    //         match key {
-    //             GameKey::Up => inp |= INPUT_UP,
-    //             GameKey::Down => inp |= INPUT_DOWN,
-    //             GameKey::Left => inp |= INPUT_LEFT,
-    //             GameKey::Right => inp |= INPUT_RIGHT,
-    //             GameKey::Attack => inp |= INPUT_FIRE,
-    //             GameKey::Pickup => println!("Pickup"),
-    //             _ => {}
-    //         }
-    //     }
-    // }
 
     GameInput { inp }
 }
@@ -134,19 +115,20 @@ pub fn spawn_players(
         transform.rotate(Quat::from_rotation_z(rot));
 
         commands
-            .spawn_bundle(SpriteBundle {
+            .spawn_bundle(SpriteSheetBundle {
                 transform,
-                texture: textures.man_blue.clone(),
-                sprite: Sprite {
+                texture_atlas: textures.tiles_atlas.clone(),
+                sprite: TextureAtlasSprite {
+                    index: 3,
                     color: *color,
-                    custom_size: Some(Vec2::new(PLAYER_SIZE * 0.5, PLAYER_SIZE)),
+                    custom_size: Some(Vec2::new(PLAYER_SIZE * 0.5, PLAYER_SIZE * 0.5)),
                     ..Default::default()
                 },
                 ..Default::default()
             })
             .insert(Player { handle, facing: Facing::Down })
             .insert(Velocity::default())
-            .insert(CarControls::default())
+            .insert(PlayerControls::default())
             .insert(Checksum::default())
             .insert(Rollback::new(rip.next_id()))
             .insert(RoundEntity);
@@ -185,7 +167,7 @@ pub fn increase_frame_count(mut frame_count: ResMut<FrameCount>) {
 }
 
 pub fn apply_inputs(
-    mut query: Query<(&mut CarControls, &Player)>,
+    mut query: Query<(&mut PlayerControls, &Player)>,
     inputs: Res<Vec<(GameInput, InputStatus)>>,
 ) {
     for (mut c, p) in query.iter_mut() {
@@ -213,7 +195,7 @@ pub fn apply_inputs(
     }
 }
 
-pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &CarControls)>) {
+pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &PlayerControls)>) {
     for (t, mut v, c) in query.iter_mut() {
         let vel = &mut v.0;
         let up = t.up().xy();
@@ -236,7 +218,9 @@ pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &CarControls
     }
 }
 
-pub fn move_players(mut query: Query<(&mut Transform, &Velocity, &CarControls), With<Rollback>>) {
+pub fn move_players(
+    mut query: Query<(&mut Transform, &Velocity, &PlayerControls), With<Rollback>>,
+) {
     for (mut t, v, c) in query.iter_mut() {
         let vel = &v.0;
         let up = t.up().xy();
@@ -256,7 +240,9 @@ pub fn move_players(mut query: Query<(&mut Transform, &Velocity, &CarControls), 
         t.translation.y += vel.y;
 
         // constrain cube to plane
-        let bounds = (ARENA_SIZE - CUBE_SIZE) * 0.5;
+        // TODO: Come back and create actual tilemap bounds
+        // let bounds = (ARENA_SIZE - CUBE_SIZE) * 0.5;
+        let bounds = 300.;
         t.translation.x = t.translation.x.clamp(-bounds, bounds);
         t.translation.y = t.translation.y.clamp(-bounds, bounds);
     }

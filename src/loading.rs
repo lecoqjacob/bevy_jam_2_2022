@@ -29,6 +29,10 @@ pub struct TextureAssets {
 
     #[asset(path = "tiles.png")]
     pub tiles: Handle<Image>,
+
+    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 6, rows = 1))]
+    #[asset(path = "tiles.png")]
+    pub tiles_atlas: Handle<TextureAtlas>,
 }
 
 #[derive(AssetCollection)]
