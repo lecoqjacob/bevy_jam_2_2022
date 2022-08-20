@@ -220,7 +220,14 @@ pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &PlayerContr
 
 pub fn move_players(
     mut query: Query<(&mut Transform, &Velocity, &PlayerControls), With<Rollback>>,
+    tilemap_query: Query<(&TilemapSize, &TilemapTileSize)>,
 ) {
+    let mut map_width = 0.0;
+    let mut map_height = 0.0;
+    for (map_size, tile_size) in tilemap_query.iter() {
+        map_width = map_size.x as f32 * tile_size.x;
+        map_height = map_size.y as f32 * tile_size.y;
+    }
     for (mut t, v, c) in query.iter_mut() {
         let vel = &v.0;
         let up = t.up().xy();
@@ -240,11 +247,8 @@ pub fn move_players(
         t.translation.y += vel.y;
 
         // constrain cube to plane
-        // TODO: Come back and create actual tilemap bounds
-        // let bounds = (ARENA_SIZE - CUBE_SIZE) * 0.5;
-        let bounds = 300.;
-        t.translation.x = t.translation.x.clamp(-bounds, bounds);
-        t.translation.y = t.translation.y.clamp(-bounds, bounds);
+        t.translation.x = t.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
+        t.translation.y = t.translation.y.clamp(-map_height / 2.0, map_height / 2.0);
     }
 }
 
