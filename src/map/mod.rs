@@ -30,8 +30,8 @@ fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
     let mut tile_storage = TileStorage::empty(tilemap_size);
 
     // Spawn the elements of the tilemap.
-    for x in 0..64u32 {
-        for y in 0..64u32 {
+    for x in 0..TILE_MAP_SIZE {
+        for y in 0..TILE_MAP_SIZE {
             let tile_pos = TilePos { x, y };
             let tile_entity = commands
                 .spawn()
