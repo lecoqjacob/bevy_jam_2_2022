@@ -4,6 +4,8 @@ use bevy_ecs_tilemap::prelude::*;
 
 pub struct MapPlugin;
 
+const TILE_MAP_SIZE: u32 = 64;
+
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.add_enter_system(AppState::RoundLocal, startup);
@@ -12,7 +14,7 @@ impl Plugin for MapPlugin {
 }
 
 fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
-    let tilemap_size = TilemapSize { x: 32, y: 32 };
+    let tilemap_size = TilemapSize { x: TILE_MAP_SIZE, y: TILE_MAP_SIZE };
 
     // Create a tilemap entity a little early.
     // We want this entity early because we need to tell each tile which tilemap entity
@@ -28,8 +30,8 @@ fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
     let mut tile_storage = TileStorage::empty(tilemap_size);
 
     // Spawn the elements of the tilemap.
-    for x in 0..32u32 {
-        for y in 0..32u32 {
+    for x in 0..TILE_MAP_SIZE {
+        for y in 0..TILE_MAP_SIZE {
             let tile_pos = TilePos { x, y };
             let tile_entity = commands
                 .spawn()

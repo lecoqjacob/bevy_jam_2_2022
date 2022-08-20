@@ -66,5 +66,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_game_camera);
         app.add_system(camera_follow.run_in_state(AppState::RoundOnline));
+        // TODO: splitscreen for local, follow all players
+        app.add_system(camera_follow.run_in_state(AppState::RoundLocal));
     }
 }
