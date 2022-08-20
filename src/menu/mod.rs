@@ -1,6 +1,6 @@
-pub mod connect;
 use crate::prelude::*;
 
+pub mod connect;
 pub mod main;
 pub mod online;
 pub mod win;
@@ -20,6 +20,6 @@ const BUTTON_TEXT: Color = Color::rgb(0.9, 0.9, 0.9);
 pub struct MenuPlugins;
 impl PluginGroup for MenuPlugins {
     fn build(&mut self, group: &mut bevy::app::PluginGroupBuilder) {
-        group.add(ConnectPlugin);
+        // group.add(ConnectPlugin);
     }
 }

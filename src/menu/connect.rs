@@ -1,4 +1,16 @@
-use crate::menu::*;
+use bevy::{prelude::*, tasks::IoTaskPool};
+use bevy_ggrs::SessionType;
+use ggrs::{PlayerHandle, PlayerType, SessionBuilder};
+use iyes_loopless::state::NextState;
+use matchbox_socket::WebRtcSocket;
+
+use crate::{
+    AppState, FontAssets, GGRSConfig, BUTTON_TEXT, FPS, HOVERED_BUTTON, INPUT_DELAY, MAX_PREDICTION,
+    NORMAL_BUTTON, NUM_PLAYERS, PRESSED_BUTTON,
+};
+
+//const MATCHBOX_ADDR: &str = "ws://127.0.0.1:3536";
+const MATCHBOX_ADDR: &str = "wss://match.gschup.dev";
 
 #[derive(Component)]
 pub struct MenuConnectUI;
@@ -6,6 +18,35 @@ pub struct MenuConnectUI;
 #[derive(Component)]
 pub enum MenuConnectBtn {
     Back,
+}
+
+pub struct LocalHandles {
+    pub handles: Vec<PlayerHandle>,
+}
+
+pub struct ConnectData {
+    pub lobby_id: String,
+}
+
+pub fn create_matchbox_socket(mut commands: Commands, connect_data: Res<ConnectData>) {
+    let lobby_id = &connect_data.lobby_id;
+    let room_url = format!("{MATCHBOX_ADDR}/{lobby_id}");
+    let (socket, message_loop) = WebRtcSocket::new(room_url);
+    IoTaskPool::get().spawn(message_loop).detach();
+    commands.insert_resource(Some(socket));
+    commands.remove_resource::<ConnectData>();
+}
+
+pub fn update_matchbox_socket(mut commands: Commands, mut socket_res: ResMut<Option<WebRtcSocket>>) {
+    if let Some(socket) = socket_res.as_mut() {
+        socket.accept_new_connections();
+        if socket.players().len() >= NUM_PLAYERS {
+            // take the socket
+            let socket = socket_res.as_mut().take().unwrap();
+            create_ggrs_session(&mut commands, socket);
+            commands.insert_resource(NextState(AppState::RoundOnline));
+        }
+    }
 }
 
 pub fn setup_connect_ui(mut commands: Commands, font_assets: Res<FontAssets>) {
@@ -111,23 +152,32 @@ pub fn cleanup_ui(query: Query<Entity, With<MenuConnectUI>>, mut commands: Comma
     }
 }
 
-pub struct ConnectUIPlugin;
-impl Plugin for ConnectUIPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_enter_system_set(
-            AppState::MenuConnect,
-            ConditionSet::new().with_system(create_matchbox_socket).with_system(setup_connect_ui).into(),
-        )
-        .add_system_set(
-            ConditionSet::new()
-                .run_in_state(AppState::MenuConnect)
-                .with_system(btn_visuals)
-                .with_system(btn_listeners)
-                .into(),
-        )
-        .add_exit_system_set(
-            AppState::MenuConnect,
-            ConditionSet::new().with_system(cleanup).with_system(cleanup_ui).into(),
-        );
+pub fn cleanup(mut commands: Commands) {
+    commands.remove_resource::<Option<WebRtcSocket>>();
+}
+
+fn create_ggrs_session(commands: &mut Commands, socket: WebRtcSocket) {
+    // create a new ggrs session
+    let mut sess_build = SessionBuilder::<GGRSConfig>::new()
+        .with_num_players(NUM_PLAYERS)
+        .with_max_prediction_window(MAX_PREDICTION)
+        .with_fps(FPS)
+        .expect("Invalid FPS")
+        .with_input_delay(INPUT_DELAY);
+
+    // add players
+    let mut handles = Vec::new();
+    for (i, player_type) in socket.players().iter().enumerate() {
+        if *player_type == PlayerType::Local {
+            handles.push(i);
+        }
+        sess_build = sess_build.add_player(player_type.clone(), i).expect("Invalid player added.");
     }
+
+    // start the GGRS session
+    let sess = sess_build.start_p2p_session(socket).expect("Session could not be created.");
+
+    commands.insert_resource(sess);
+    commands.insert_resource(LocalHandles { handles });
+    commands.insert_resource(SessionType::P2PSession);
 }

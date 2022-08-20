@@ -1,9 +1,7 @@
-use crate::{menu::*, GGRSConfig};
+use crate::{menu::*, GGRSConfig, CHECK_DISTANCE, FPS, INPUT_DELAY, MAX_PREDICTION, NUM_PLAYERS};
 use bevy::app::AppExit;
 use bevy_ggrs::SessionType;
 use ggrs::{PlayerType, SessionBuilder};
-
-use super::connect::LocalHandles;
 
 #[derive(Component)]
 pub struct MenuMainUI;
