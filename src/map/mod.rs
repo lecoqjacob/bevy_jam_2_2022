@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use bevy::{prelude::*, render::texture::ImageSettings};
+use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
 pub struct MapPlugin;
