@@ -1,5 +1,3 @@
-use bevy::render::camera::RenderTarget;
-
 use crate::prelude::*;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -42,12 +40,15 @@ pub fn position_translation(windows: Res<Windows>, mut q: Query<(&Point, &mut Tr
 #[derive(Component)]
 pub struct MainCamera;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct CursorCoordinates(pub Vec2);
 
 fn setup_game_camera(mut commands: Commands) {
     // Add a 2D Camera
-    commands.spawn_bundle(Camera2dBundle::default()).insert(MainCamera);
+    // commands.spawn_bundle(Camera2dBundle::default()).insert(MainCamera);
+    let mut cam = Camera2dBundle::default();
+    // cam.transform.scale = Vec3::new(0.5, 0.5, 1.0);
+    commands.spawn_bundle(cam).insert(MainCamera);
 }
 
 pub fn camera_follow(
@@ -66,39 +67,39 @@ pub fn camera_follow(
     );
 }
 
-fn cursor_coordinates(
-    mut commands: Commands,
-    wnds: Res<Windows>,
-    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-) {
-    let (camera, camera_transform) = q_camera.single();
-    if let Some(wnd) = if let RenderTarget::Window(id) = camera.target {
-        wnds.get(id)
-    } else {
-        wnds.get_primary()
-    } {
-        // check if the cursor is inside the window and get its position
-        if let Some(screen_pos) = wnd.cursor_position() {
-            // get the size of the window
-            let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
+// fn cursor_coordinates(
+//     mut commands: Commands,
+//     wnds: Res<Windows>,
+//     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+// ) {
+//     let (camera, camera_transform) = q_camera.single();
+//     if let Some(wnd) = if let RenderTarget::Window(id) = camera.target {
+//         wnds.get(id)
+//     } else {
+//         wnds.get_primary()
+//     } {
+//         // check if the cursor is inside the window and get its position
+//         if let Some(screen_pos) = wnd.cursor_position() {
+//             // get the size of the window
+//             let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
 
-            // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-            let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+//             // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+//             let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
 
-            // matrix for undoing the projection and camera transform
-            let ndc_to_world =
-                camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+//             // matrix for undoing the projection and camera transform
+//             let ndc_to_world =
+//                 camera_transform.compute_matrix() * camera.projection_matrix().inverse();
 
-            // use it to convert ndc to world-space coordinates
-            let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+//             // use it to convert ndc to world-space coordinates
+//             let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
 
-            // reduce it to a 2D value
-            let world_pos: Vec2 = world_pos.truncate();
+//             // reduce it to a 2D value
+//             let world_pos: Vec2 = world_pos.truncate();
 
-            commands.insert_resource(CursorCoordinates(world_pos));
-        }
-    }
-}
+//             commands.insert_resource(CursorCoordinates(world_pos));
+//         }
+//     }
+// }
 
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
@@ -110,7 +111,7 @@ impl Plugin for CameraPlugin {
             ConditionSet::new()
                 .run_in_state(AppState::RoundOnline)
                 .with_system(camera_follow)
-                .with_system(cursor_coordinates)
+                // .with_system(cursor_coordinates)
                 .into(),
         );
 
@@ -120,7 +121,7 @@ impl Plugin for CameraPlugin {
             ConditionSet::new()
                 .run_in_state(AppState::RoundLocal)
                 .with_system(camera_follow)
-                .with_system(cursor_coordinates)
+                // .with_system(cursor_coordinates)
                 .into(),
         );
     }

@@ -6,24 +6,14 @@ use bevy_ggrs::{Rollback, RollbackIdProvider, SessionType};
 use bytemuck::{Pod, Zeroable};
 use ggrs::{InputStatus, P2PSession, PlayerHandle};
 
-const INPUT_UP: u8 = 1 << 0;
-const INPUT_DOWN: u8 = 1 << 1;
-const INPUT_LEFT: u8 = 1 << 2;
-const INPUT_RIGHT: u8 = 1 << 3;
-const INPUT_ATTACK: u8 = 1 << 4;
+mod player;
+pub use player::*;
 
 const BLUE: Color = Color::rgb(0.8, 0.6, 0.2);
 const ORANGE: Color = Color::rgb(0., 0.35, 0.8);
 const MAGENTA: Color = Color::rgb(0.9, 0.2, 0.2);
 const GREEN: Color = Color::rgb(0.35, 0.7, 0.35);
 const PLAYER_COLORS: [Color; 4] = [BLUE, ORANGE, MAGENTA, GREEN];
-
-const PLAYER_SIZE: f32 = 50.;
-const MOV_SPEED: f32 = 0.1;
-const MAX_SPEED: f32 = 7.5;
-const FRICTION: f32 = 0.98;
-const DRIFT: f32 = 0.95;
-const ARENA_SIZE: f32 = 720.0;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Pod, Zeroable)]
@@ -36,11 +26,6 @@ pub struct RoundEntity;
 
 #[derive(Default, Reflect, Component)]
 pub struct Velocity(pub Vec2);
-
-#[derive(Default, Reflect, Component)]
-pub struct PlayerControls {
-    accel: f32,
-}
 
 #[derive(Default, Reflect, Hash, Component)]
 #[reflect(Hash)]
@@ -57,35 +42,35 @@ pub fn input(
 
     if handle.0 == local_handles.handles[0] {
         if GameKey::LocalUp.pressed(&keyboard_input) {
-            inp |= INPUT_UP;
+            inp |= PlayerControls::INPUT_UP;
         }
         if GameKey::LocalLeft.pressed(&keyboard_input) {
-            inp |= INPUT_LEFT;
+            inp |= PlayerControls::INPUT_LEFT;
         }
         if GameKey::LocalDown.pressed(&keyboard_input) {
-            inp |= INPUT_DOWN;
+            inp |= PlayerControls::INPUT_DOWN;
         }
         if GameKey::LocalRight.pressed(&keyboard_input) {
-            inp |= INPUT_RIGHT;
+            inp |= PlayerControls::INPUT_RIGHT;
         }
         if GameKey::LocalAttack.pressed(&keyboard_input) {
-            inp |= INPUT_ATTACK;
+            inp |= PlayerControls::INPUT_ATTACK;
         }
     } else {
         if GameKey::Up.pressed(&keyboard_input) {
-            inp |= INPUT_UP;
+            inp |= PlayerControls::INPUT_UP;
         }
         if GameKey::Left.pressed(&keyboard_input) {
-            inp |= INPUT_LEFT;
+            inp |= PlayerControls::INPUT_LEFT;
         }
         if GameKey::Down.pressed(&keyboard_input) {
-            inp |= INPUT_DOWN;
+            inp |= PlayerControls::INPUT_DOWN;
         }
         if GameKey::Right.pressed(&keyboard_input) {
-            inp |= INPUT_RIGHT;
+            inp |= PlayerControls::INPUT_RIGHT;
         }
         if GameKey::Attack.pressed(&keyboard_input) {
-            inp |= INPUT_ATTACK;
+            inp |= PlayerControls::INPUT_ATTACK;
         }
     }
 
@@ -102,7 +87,7 @@ pub fn spawn_players(
     textures: Res<TextureAssets>,
     mut rip: ResMut<RollbackIdProvider>,
 ) {
-    let r = ARENA_SIZE / 4.;
+    let r = 720. / 4.;
 
     for (handle, color) in PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
         let rot = handle as f32 / NUM_PLAYERS as f32 * 2. * std::f32::consts::PI;
@@ -119,12 +104,15 @@ pub fn spawn_players(
                 sprite: TextureAtlasSprite {
                     index: 3,
                     color: *color,
-                    custom_size: Some(Vec2::new(PLAYER_SIZE * 0.5, PLAYER_SIZE * 0.5)),
+                    custom_size: Some(Vec2::new(
+                        player_settings::DEFAULT_PLAYER_SIZE,
+                        player_settings::DEFAULT_PLAYER_SIZE,
+                    )),
                     ..Default::default()
                 },
                 ..Default::default()
             })
-            .insert(Player { handle, facing: Facing::Down })
+            .insert(Player::new(handle))
             .insert(Velocity::default())
             .insert(PlayerControls::default())
             .insert(Checksum::default())
@@ -175,15 +163,35 @@ pub fn apply_inputs(
             InputStatus::Disconnected => 0, // disconnected players do nothing
         };
 
-        c.accel = if input & INPUT_DOWN != 0 && input & INPUT_UP == 0 {
+        c.steer = if input & PlayerControls::INPUT_LEFT != 0
+            && input & PlayerControls::INPUT_RIGHT == 0
+        {
+            1.
+        } else if input & PlayerControls::INPUT_LEFT == 0
+            && input & PlayerControls::INPUT_RIGHT != 0
+        {
             -1.
-        } else if input & INPUT_DOWN == 0 && input & INPUT_UP != 0 {
+        } else {
+            0.
+        };
+
+        c.accel = if input & PlayerControls::INPUT_DOWN != 0
+            && input & PlayerControls::INPUT_UP == 0
+        {
+            -1.
+        } else if input & PlayerControls::INPUT_DOWN == 0 && input & PlayerControls::INPUT_UP != 0 {
             1.
         } else {
             0.
         };
     }
 }
+
+const MOV_SPEED: f32 = 0.1;
+const FRICTION: f32 = 0.98;
+const ROT_SPEED: f32 = 0.05;
+const MAX_SPEED: f32 = 7.5;
+const DRIFT: f32 = 0.95;
 
 pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &PlayerControls)>) {
     for (t, mut v, c) in query.iter_mut() {
@@ -209,8 +217,7 @@ pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &PlayerContr
 }
 
 pub fn move_players(
-    cursor_coords: Res<CursorCoordinates>,
-    mut query: Query<(&mut Transform, &Velocity), With<Rollback>>,
+    mut query: Query<(&mut Transform, &Velocity, &PlayerControls), With<Rollback>>,
     tilemap_query: Query<(&TilemapSize, &TilemapTileSize)>,
 ) {
     let mut map_width = 0.0;
@@ -219,14 +226,19 @@ pub fn move_players(
         map_width = map_size.x as f32 * tile_size.x;
         map_height = map_size.y as f32 * tile_size.y;
     }
-    for (mut t, v) in query.iter_mut() {
+    for (mut t, v, c) in query.iter_mut() {
         let vel = &v.0;
+        let up = t.up().xy();
 
-        // Rotate transform towards cursor
-        let mouse_translation = cursor_coords.0;
-        let to_mouse = (mouse_translation - t.translation.xy()).normalize();
-        let rotate_to_mouse = Quat::from_rotation_arc(Vec3::Y, to_mouse.extend(0.));
-        t.rotation = rotate_to_mouse;
+        // rotate car
+        let rot_factor = (vel.length() / MAX_SPEED).clamp(0.0, 1.0); // cannot rotate while standing still
+        let rot = if vel.dot(up) >= 0.0 {
+            c.steer * ROT_SPEED * rot_factor
+        } else {
+            // negate rotation while driving backwards
+            c.steer * ROT_SPEED * rot_factor * -1.0
+        };
+        t.rotate(Quat::from_rotation_z(rot));
 
         // apply velocity
         t.translation.x += vel.x;

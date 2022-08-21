@@ -37,6 +37,9 @@ pub struct TextureAssets {
     #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 16, rows = 16))]
     #[asset(path = "textures/tileset.png")]
     pub tileset_atlas: Handle<TextureAtlas>,
+
+    #[asset(path = "textures/gun.png")]
+    pub gun: Handle<Image>,
 }
 
 #[derive(AssetCollection)]

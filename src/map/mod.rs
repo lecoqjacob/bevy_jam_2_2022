@@ -1,15 +1,21 @@
-use crate::prelude::*;
+use crate::{impl_new, prelude::*};
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-
-pub struct MapPlugin;
+use bevy_ggrs::SessionType;
 
 const TILE_MAP_SIZE: u32 = 64;
 
-impl Plugin for MapPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_enter_system(AppState::RoundLocal, startup);
-        app.add_enter_system(AppState::RoundOnline, startup);
+#[derive(Debug)]
+pub struct MapSettings {
+    pub width: f32,
+    pub height: f32,
+}
+
+impl_new!(MapSettings, width: f32, height: f32);
+
+impl MapSettings {
+    pub fn size(&self) -> f32 {
+        self.width * self.height
     }
 }
 
@@ -61,4 +67,27 @@ fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
         ),
         ..Default::default()
     });
+
+    commands.insert_resource(MapSettings::new(
+        tilemap_size.x as f32 * tile_size.x,
+        tilemap_size.y as f32 * tile_size.y,
+    ));
+
+    // let next_state = match *session_type {
+    //     SessionType::SyncTestSession => AppState::RoundLocal,
+    //     SessionType::P2PSession => AppState::RoundOnline,
+    //     _ => unreachable!("We Dont handle spectator D:"),
+    // };
+
+    // println!("{:?}", next_state);
+
+    // commands.insert_resource(NextState(next_state))
+}
+
+pub struct MapPlugin;
+impl Plugin for MapPlugin {
+    fn build(&self, app: &mut App) {
+        // app.add_enter_system(AppState::WorldGen, startup);
+        app.add_enter_system(AppState::RoundLocal, startup);
+    }
 }
