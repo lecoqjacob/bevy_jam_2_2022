@@ -35,29 +35,9 @@ pub fn spawn_players(
     textures: Res<TextureAssets>,
     mut rip: ResMut<RollbackIdProvider>,
 ) {
-    let r = 720. / 4.;
-
     for (handle, color) in PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
-        let rot = handle as f32 / NUM_PLAYERS as f32 * 2. * std::f32::consts::PI;
-        let x = r * rot.cos();
-        let y = r * rot.sin();
-
-        let transform = Transform::from_translation(Vec3::new(x, y, 1.));
-
-        let gun = commands
-            .spawn_bundle(SpriteBundle {
-                transform,
-                texture: textures.gun.clone(),
-                sprite: Sprite {
-                    color: PLAYER_COLORS[handle],
-                    custom_size: Some(Vec2::new(15., 15.)),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            .id();
-
-        commands
+        let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
+        let player = commands
             .spawn_bundle(SpriteSheetBundle {
                 transform,
                 texture_atlas: textures.tiles_atlas.clone(),
@@ -77,7 +57,23 @@ pub fn spawn_players(
             .insert(Checksum::default())
             .insert(Rollback::new(rip.next_id()))
             .insert(RoundEntity)
-            .add_child(gun);
+            .id();
+
+        let gun = commands
+            .spawn_bundle(SpriteSheetBundle {
+                transform: transform.with_translation(Vec3::new(0., 10., 5.)),
+                texture_atlas: textures.tiles_atlas.clone(),
+                sprite: TextureAtlasSprite {
+                    index: 3,
+                    color: *color,
+                    custom_size: Some(Vec2::new(5., 10.)),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .id();
+
+        commands.entity(player).add_child(gun);
     }
 }
 

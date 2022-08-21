@@ -40,6 +40,7 @@ pub struct Player {
     pub rotation_speed: f32,
     /// linear speed in meters per second
     pub movement_speed: f32,
+    pub rotation: Quat,
 }
 
 impl Player {

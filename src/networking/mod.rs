@@ -2,7 +2,6 @@ use crate::prelude::*;
 use crate::round;
 
 mod checksum;
-use bevy::time::FixedTimestep;
 pub use checksum::*;
 
 #[derive(Debug)]
@@ -13,7 +12,8 @@ impl Config for GGRSConfig {
     type Address = String;
 }
 
-pub const TIME_STEP: f32 = 1.0 / 60.0;
+pub const FPS: usize = 60;
+pub const TIME_STEP: f32 = 1.0 / FPS as f32;
 
 pub struct NetworkingPlugin;
 impl Plugin for NetworkingPlugin {
@@ -30,7 +30,12 @@ impl Plugin for NetworkingPlugin {
                         ROLLBACK_SYSTEMS,
                         SystemStage::parallel()
                             .with_system(apply_inputs.label(SystemLabels::Input))
-                            .with_system(move_players.after(SystemLabels::Input))
+                            .with_system(
+                                camera_coords
+                                    .label(SystemLabels::Camera)
+                                    .after(SystemLabels::Input),
+                            )
+                            .with_system(move_players.after(SystemLabels::Camera))
                             .with_system(increase_frame_count),
                     )
                     .with_stage_after(

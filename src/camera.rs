@@ -45,6 +45,8 @@ pub struct CursorCoordinates(pub Vec2);
 
 fn setup_game_camera(mut commands: Commands) {
     // Add a 2D Camera
+    let mut cam = Camera2dBundle::default();
+    cam.transform.translation.z = 999.0;
     commands.spawn_bundle(Camera2dBundle::default()).insert(MainCamera);
 }
 
@@ -65,37 +67,37 @@ pub fn camera_follow(
 }
 
 // fn cursor_coordinates(
-//     mut commands: Commands,
-//     wnds: Res<Windows>,
+// mut commands: Commands,
+// wnds: Res<Windows>,
 //     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 // ) {
-//     let (camera, camera_transform) = q_camera.single();
-//     if let Some(wnd) = if let RenderTarget::Window(id) = camera.target {
-//         wnds.get(id)
-//     } else {
-//         wnds.get_primary()
-//     } {
-//         // check if the cursor is inside the window and get its position
-//         if let Some(screen_pos) = wnd.cursor_position() {
-//             // get the size of the window
-//             let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
+// let (camera, camera_transform) = q_camera.single();
+// if let Some(wnd) = if let RenderTarget::Window(id) = camera.target {
+//     wnds.get(id)
+// } else {
+//     wnds.get_primary()
+// } {
+//     // check if the cursor is inside the window and get its position
+//     if let Some(screen_pos) = wnd.cursor_position() {
+//         // get the size of the window
+//         let window_size = Vec2::new(wnd.width() as f32, wnd.height() as f32);
 
-//             // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-//             let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+//         // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+//         let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
 
-//             // matrix for undoing the projection and camera transform
-//             let ndc_to_world =
-//                 camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+//         // matrix for undoing the projection and camera transform
+//         let ndc_to_world =
+//             camera_transform.compute_matrix() * camera.projection_matrix().inverse();
 
-//             // use it to convert ndc to world-space coordinates
-//             let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+//         // use it to convert ndc to world-space coordinates
+//         let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
 
-//             // reduce it to a 2D value
-//             let world_pos: Vec2 = world_pos.truncate();
+//         // reduce it to a 2D value
+//         let world_pos: Vec2 = world_pos.truncate();
 
-//             commands.insert_resource(CursorCoordinates(world_pos));
-//         }
+//         commands.insert_resource(CursorCoordinates(world_pos));
 //     }
+// }
 // }
 
 pub struct CameraPlugin;

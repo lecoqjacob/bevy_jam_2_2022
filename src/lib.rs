@@ -43,7 +43,6 @@ mod prelude {
     pub const UI_HEIGHT: i32 = 10;
 
     pub const NUM_PLAYERS: usize = 2;
-    pub const FPS: usize = 60;
     pub const ROLLBACK_SYSTEMS: &str = "rollback_systems";
     pub const CHECKSUM_UPDATE: &str = "checksum_update";
     pub const MAX_PREDICTION: usize = 12;
