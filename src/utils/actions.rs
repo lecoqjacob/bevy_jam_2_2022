@@ -20,6 +20,27 @@ pub enum GameKey {
 }
 
 impl GameKey {
+    pub fn key_code(&self) -> KeyCode {
+        match self {
+            GameKey::LocalUp => KeyCode::W,
+            GameKey::LocalDown => KeyCode::S,
+            GameKey::LocalLeft => KeyCode::A,
+            GameKey::LocalRight => KeyCode::D,
+            GameKey::LocalAttack => KeyCode::Space,
+            GameKey::LocalPickup => KeyCode::E,
+            GameKey::Up => KeyCode::Up,
+            GameKey::Down => KeyCode::Down,
+            GameKey::Left => KeyCode::Left,
+            GameKey::Right => KeyCode::Right,
+            GameKey::Attack => KeyCode::Return,
+            GameKey::Pickup => KeyCode::E,
+        }
+    }
+
+    pub fn reset(&self, keyboard_input: &mut Input<KeyCode>) {
+        keyboard_input.reset(self.key_code());
+    }
+
     pub fn just_released(&self, keyboard_input: &Res<Input<KeyCode>>) -> bool {
         match self {
             // Local
@@ -39,7 +60,7 @@ impl GameKey {
         }
     }
 
-    pub fn pressed(&self, keyboard_input: &Res<Input<KeyCode>>) -> bool {
+    pub fn pressed(&self, keyboard_input: &Input<KeyCode>) -> bool {
         match self {
             // Local
             GameKey::LocalUp => keyboard_input.pressed(KeyCode::W),

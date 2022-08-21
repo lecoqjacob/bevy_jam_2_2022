@@ -22,6 +22,7 @@ impl Plugin for NetworkingPlugin {
             .with_update_frequency(FPS)
             .with_input_system(round::input)
             .register_rollback_type::<Transform>()
+            .register_rollback_type::<BulletReady>()
             .register_rollback_type::<FrameCount>()
             .register_rollback_type::<Checksum>()
             .with_rollback_schedule(
@@ -30,13 +31,11 @@ impl Plugin for NetworkingPlugin {
                         ROLLBACK_SYSTEMS,
                         SystemStage::parallel()
                             .with_system(apply_inputs.label(SystemLabels::Input))
-                            .with_system(
-                                camera_coords
-                                    .label(SystemLabels::Camera)
-                                    .after(SystemLabels::Input),
-                            )
-                            .with_system(move_players.after(SystemLabels::Camera))
-                            .with_system(increase_frame_count),
+                            .with_system(move_players.after(SystemLabels::Input))
+                            .with_system(increase_frame_count)
+                            .with_system(reload_bullet)
+                            .with_system(fire_bullets.after(move_players).after(reload_bullet)) // .with_system(move_bullet),
+                            .with_system(move_bullet),
                     )
                     .with_stage_after(
                         ROLLBACK_SYSTEMS,

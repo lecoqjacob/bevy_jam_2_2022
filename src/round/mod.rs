@@ -5,8 +5,11 @@ use bevy_ggrs::{Rollback, RollbackIdProvider, SessionType};
 use bytemuck::{Pod, Zeroable};
 use ggrs::{InputStatus, P2PSession, PlayerHandle};
 
+mod input;
 mod player;
 mod rollback;
+
+pub use input::*;
 pub use player::*;
 pub use rollback::*;
 
@@ -34,9 +37,22 @@ pub fn spawn_players(
     mut commands: Commands,
     textures: Res<TextureAssets>,
     mut rip: ResMut<RollbackIdProvider>,
+    player_query: Query<Entity, With<Player>>,
+    bullet_query: Query<Entity, With<Bullet>>,
 ) {
+    info!("Spawning players");
+
+    for player in player_query.iter() {
+        commands.entity(player).despawn_recursive();
+    }
+    for bullet in bullet_query.iter() {
+        commands.entity(bullet).despawn_recursive();
+    }
+
     for (handle, color) in PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
         let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
+
+        let player_comp = Player::new(handle);
         let player = commands
             .spawn_bundle(SpriteSheetBundle {
                 transform,
@@ -44,18 +60,16 @@ pub fn spawn_players(
                 sprite: TextureAtlasSprite {
                     index: 3,
                     color: *color,
-                    custom_size: Some(Vec2::new(
-                        player_settings::DEFAULT_PLAYER_SIZE,
-                        player_settings::DEFAULT_PLAYER_SIZE,
-                    )),
+                    custom_size: Some(Vec2::new(player_comp.size, player_comp.size)),
                     ..Default::default()
                 },
                 ..Default::default()
             })
-            .insert(Player::new(handle))
+            .insert(player_comp)
             .insert(PlayerControls::default())
             .insert(Checksum::default())
             .insert(Rollback::new(rip.next_id()))
+            .insert(BulletReady(true))
             .insert(RoundEntity)
             .id();
 
@@ -100,9 +114,23 @@ pub fn cleanup_round(mut commands: Commands) {
     commands.remove_resource::<SessionType>();
 }
 
-pub struct OnlineRoundPlugin;
-impl Plugin for OnlineRoundPlugin {
+pub struct RoundPlugin;
+impl Plugin for RoundPlugin {
     fn build(&self, app: &mut App) {
+        // Local
+        app.add_enter_system_set(
+            AppState::RoundLocal,
+            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
+        )
+        .add_system(check_win.run_in_state(AppState::RoundLocal))
+        .add_exit_system_set(
+            AppState::RoundLocal,
+            ConditionSet::new()
+                .with_system(cleanup_round)
+                .with_system(despawn_all_with::<RoundEntity>)
+                .into(),
+        );
+
         // online round
         app.add_enter_system_set(
             AppState::RoundOnline,
@@ -122,31 +150,5 @@ impl Plugin for OnlineRoundPlugin {
                 .with_system(despawn_all_with::<RoundEntity>)
                 .into(),
         );
-    }
-}
-
-pub struct LocalRoundPlugin;
-impl Plugin for LocalRoundPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_enter_system_set(
-            AppState::RoundLocal,
-            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
-        )
-        .add_system(check_win.run_in_state(AppState::RoundLocal))
-        .add_exit_system_set(
-            AppState::RoundLocal,
-            ConditionSet::new()
-                .with_system(cleanup_round)
-                .with_system(despawn_all_with::<RoundEntity>)
-                .into(),
-        );
-    }
-}
-
-pub struct RoundPlugin;
-impl Plugin for RoundPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugin(LocalRoundPlugin);
-        app.add_plugin(OnlineRoundPlugin);
     }
 }

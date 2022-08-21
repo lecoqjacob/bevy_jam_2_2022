@@ -4,43 +4,17 @@ pub mod player_settings {
     pub const DEFAULT_ROT_SPEED: f32 = 360.;
     pub const DEFAULT_PLAYER_SIZE: f32 = 15.;
     pub const DEFAULT_MOVE_SPEED: f32 = 300.;
-
-    pub const MAX_SPEED: f32 = 300.;
-    pub const FRICTION: f32 = 0.98;
-    pub const DRIFT: f32 = 1.0;
-}
-
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
-pub enum Facing {
-    #[default]
-    Down,
-    Up,
-    Left,
-    Right,
-}
-
-impl Facing {
-    pub fn index(&self) -> usize {
-        match self {
-            Facing::Left => 0,
-            Facing::Right => 1,
-            Facing::Up => 2,
-            Facing::Down => 3,
-        }
-    }
 }
 
 #[derive(Default, Component)]
 pub struct Player {
     pub size: f32,
     pub handle: usize,
-    pub facing: Facing,
 
     /// rotation speed in radians per second
     pub rotation_speed: f32,
     /// linear speed in meters per second
     pub movement_speed: f32,
-    pub rotation: Quat,
 }
 
 impl Player {
@@ -50,7 +24,6 @@ impl Player {
             size: player_settings::DEFAULT_PLAYER_SIZE,
             movement_speed: player_settings::DEFAULT_MOVE_SPEED,
             rotation_speed: f32::to_radians(player_settings::DEFAULT_ROT_SPEED),
-            ..Default::default()
         }
     }
 }
@@ -61,60 +34,42 @@ pub struct PlayerControls {
     pub steer: f32,
 }
 
-impl PlayerControls {
-    pub const INPUT_UP: u8 = 1 << 0;
-    pub const INPUT_DOWN: u8 = 1 << 1;
-    pub const INPUT_LEFT: u8 = 1 << 2;
-    pub const INPUT_RIGHT: u8 = 1 << 3;
-    pub const INPUT_ATTACK: u8 = 1 << 4;
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Pod, Zeroable)]
-pub struct GameInput {
-    pub inp: u8,
-}
-
-pub fn input(
-    handle: In<PlayerHandle>,
-    local_handles: Res<LocalHandles>,
-    keyboard_input: Res<Input<KeyCode>>,
-) -> GameInput {
-    let mut inp: u8 = 0;
-
-    if handle.0 == local_handles.handles[0] {
-        if GameKey::LocalUp.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_UP;
-        }
-        if GameKey::LocalLeft.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_LEFT;
-        }
-        if GameKey::LocalDown.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_DOWN;
-        }
-        if GameKey::LocalRight.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_RIGHT;
-        }
-        if GameKey::LocalAttack.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_ATTACK;
-        }
-    } else {
-        if GameKey::Up.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_UP;
-        }
-        if GameKey::Left.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_LEFT;
-        }
-        if GameKey::Down.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_DOWN;
-        }
-        if GameKey::Right.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_RIGHT;
-        }
-        if GameKey::Attack.pressed(&keyboard_input) {
-            inp |= PlayerControls::INPUT_ATTACK;
+pub fn reload_bullet(
+    inputs: Res<Vec<(GameInput, InputStatus)>>,
+    mut query: Query<(&Player, &mut BulletReady)>,
+) {
+    for (player, mut bullet_ready) in query.iter_mut() {
+        let input = inputs[player.handle].0.inp;
+        if !is_firing(input) {
+            bullet_ready.0 = true;
         }
     }
+}
 
-    GameInput { inp }
+pub fn fire_bullets(
+    mut commands: Commands,
+    textures: Res<TextureAssets>,
+    mut rip: ResMut<RollbackIdProvider>,
+    inputs: Res<Vec<(GameInput, InputStatus)>>,
+    mut player_query: Query<(&Transform, &Player, &mut BulletReady)>,
+) {
+    for (transform, player, mut bullet_ready) in player_query.iter_mut() {
+        let (input, _) = inputs[player.handle];
+        if is_firing(input.inp) && bullet_ready.0 {
+            let movement_direction = transform.rotation * Vec3::Y;
+            let trans = transform.translation + movement_direction * player.size;
+
+                commands
+                .spawn_bundle(SpriteBundle {
+                    transform: transform.with_translation(trans),
+                    texture: textures.bullet.clone(),
+                    sprite: Sprite { custom_size: Some(Vec2::new(5., 5.)), ..default() },
+                    ..default()
+                })
+                .insert(Bullet)
+                .insert(Rollback::new(rip.next_id()));
+
+            bullet_ready.0 = false;
+        }
+    }
 }

@@ -34,7 +34,10 @@ pub fn update_matchbox_socket(
 ) {
     if let Some(socket) = socket_res.as_mut() {
         socket.accept_new_connections();
+
         if socket.players().len() >= NUM_PLAYERS {
+            info!("All peers have joined, going in-game");
+
             // take the socket
             let socket = socket_res.as_mut().take().unwrap();
             create_ggrs_session(&mut commands, socket);
