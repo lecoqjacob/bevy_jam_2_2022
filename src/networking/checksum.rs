@@ -16,8 +16,11 @@ pub fn checksum_players(
         bytes.extend_from_slice(&t.translation.x.to_le_bytes());
         bytes.extend_from_slice(&t.translation.y.to_le_bytes());
         bytes.extend_from_slice(&t.translation.z.to_le_bytes());
-        // bytes.extend_from_slice(&v.0.x.to_le_bytes());
-        // bytes.extend_from_slice(&v.0.y.to_le_bytes());
+
+        bytes.extend_from_slice(&t.rotation.x.to_le_bytes());
+        bytes.extend_from_slice(&t.rotation.y.to_le_bytes());
+        bytes.extend_from_slice(&t.rotation.z.to_le_bytes());
+        bytes.extend_from_slice(&t.rotation.w.to_le_bytes());
 
         // naive checksum implementation
         checksum.value = fletcher16(&bytes);
