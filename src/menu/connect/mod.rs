@@ -38,7 +38,7 @@ pub fn update_matchbox_socket(
             // take the socket
             let socket = socket_res.as_mut().take().unwrap();
             create_ggrs_session(&mut commands, socket);
-            commands.insert_resource(NextState(AppState::RoundOnline));
+            commands.insert_resource(NextState(AppState::WorldGen));
         }
     }
 }

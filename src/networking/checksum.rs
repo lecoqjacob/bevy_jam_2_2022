@@ -9,9 +9,9 @@ pub struct Checksum {
 }
 
 pub fn checksum_players(
-    mut query: Query<(&Transform, &Velocity, &mut Checksum), (With<Player>, With<Rollback>)>,
+    mut query: Query<(&Transform, &mut Checksum), (With<Player>, With<Rollback>)>,
 ) {
-    for (t, v, mut checksum) in query.iter_mut() {
+    for (t, mut checksum) in query.iter_mut() {
         let mut bytes = Vec::with_capacity(20);
         bytes.extend_from_slice(&t.translation.x.to_le_bytes());
         bytes.extend_from_slice(&t.translation.y.to_le_bytes());

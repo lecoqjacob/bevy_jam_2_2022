@@ -150,7 +150,7 @@ pub fn btn_listeners(
                 }
                 MenuMainBtn::LocalMatch => {
                     create_synctest_session(&mut commands);
-                    commands.insert_resource(NextState(AppState::RoundLocal));
+                    commands.insert_resource(NextState(AppState::WorldGen));
                 }
                 MenuMainBtn::Quit => {
                     exit.send(AppExit);

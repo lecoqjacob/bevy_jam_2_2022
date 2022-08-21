@@ -43,35 +43,6 @@ pub fn apply_inputs(
     }
 }
 
-const MOV_SPEED: f32 = 0.1;
-const FRICTION: f32 = 0.98;
-const ROT_SPEED: f32 = 0.05;
-const MAX_SPEED: f32 = 7.5;
-const DRIFT: f32 = 0.95;
-
-pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &PlayerControls)>) {
-    for (t, mut v, c) in query.iter_mut() {
-        let vel = &mut v.0;
-        let up = t.up().xy();
-        let right = t.right().xy();
-
-        // car drives forward / backward
-        *vel += (c.accel * MOV_SPEED) * up;
-
-        // very realistic tire friction
-        let forward_vel = up * vel.dot(up);
-        let right_vel = right * vel.dot(right);
-
-        *vel = forward_vel + right_vel * DRIFT;
-        if c.accel.abs() <= 0.0 {
-            *vel *= FRICTION;
-        }
-
-        // constrain velocity
-        *vel = vel.clamp_length_max(MAX_SPEED);
-    }
-}
-
 pub fn move_players(
     map_settings: Res<MapSettings>,
     mut query: Query<(&mut Transform, &PlayerControls, &Player), With<Rollback>>,

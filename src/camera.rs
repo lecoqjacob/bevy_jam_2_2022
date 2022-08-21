@@ -45,10 +45,7 @@ pub struct CursorCoordinates(pub Vec2);
 
 fn setup_game_camera(mut commands: Commands) {
     // Add a 2D Camera
-    // commands.spawn_bundle(Camera2dBundle::default()).insert(MainCamera);
-    let mut cam = Camera2dBundle::default();
-    // cam.transform.scale = Vec3::new(0.5, 0.5, 1.0);
-    commands.spawn_bundle(cam).insert(MainCamera);
+    commands.spawn_bundle(Camera2dBundle::default()).insert(MainCamera);
 }
 
 pub fn camera_follow(

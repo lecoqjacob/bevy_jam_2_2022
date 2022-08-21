@@ -19,7 +19,7 @@ impl MapSettings {
     }
 }
 
-fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
+fn startup(mut commands: Commands, textures: Res<TextureAssets>, session_type: Res<SessionType>) {
     let tilemap_size = TilemapSize { x: TILE_MAP_SIZE, y: TILE_MAP_SIZE };
 
     // Create a tilemap entity a little early.
@@ -73,21 +73,18 @@ fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
         tilemap_size.y as f32 * tile_size.y,
     ));
 
-    // let next_state = match *session_type {
-    //     SessionType::SyncTestSession => AppState::RoundLocal,
-    //     SessionType::P2PSession => AppState::RoundOnline,
-    //     _ => unreachable!("We Dont handle spectator D:"),
-    // };
+    let next_state = match *session_type {
+        SessionType::SyncTestSession => AppState::RoundLocal,
+        SessionType::P2PSession => AppState::RoundOnline,
+        _ => unreachable!("We Dont handle spectator D:"),
+    };
 
-    // println!("{:?}", next_state);
-
-    // commands.insert_resource(NextState(next_state))
+    commands.insert_resource(NextState(next_state))
 }
 
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        // app.add_enter_system(AppState::WorldGen, startup);
-        app.add_enter_system(AppState::RoundLocal, startup);
+        app.add_enter_system(AppState::WorldGen, startup);
     }
 }
