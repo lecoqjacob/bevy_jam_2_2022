@@ -40,6 +40,9 @@ pub struct TextureAssets {
 
     #[asset(path = "textures/gun.png")]
     pub gun: Handle<Image>,
+
+    #[asset(path = "textures/bullet.png")]
+    pub bullet: Handle<Image>,
 }
 
 #[derive(AssetCollection)]

@@ -36,6 +36,5 @@ pub enum RenderStage {
 #[derive(SystemLabel, Debug, Clone, Hash, Eq, PartialEq)]
 pub enum SystemLabels {
     Input,
-    Camera,
     Velocity,
 }
