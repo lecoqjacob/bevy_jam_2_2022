@@ -37,7 +37,7 @@ fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
                 .spawn()
                 .insert_bundle(TileBundle {
                     position: tile_pos,
-                    texture: TileTexture(0),
+                    texture: TileTexture(23),
                     tilemap_id: TilemapId(tilemap_entity),
                     ..Default::default()
                 })
@@ -52,7 +52,7 @@ fn startup(mut commands: Commands, textures: Res<TextureAssets>) {
         grid_size: TilemapGridSize { x: 16.0, y: 16.0 },
         size: tilemap_size,
         storage: tile_storage,
-        texture: TilemapTexture(textures.tiles.clone()),
+        texture: TilemapTexture(textures.tileset.clone()),
         tile_size,
         transform: bevy_ecs_tilemap::helpers::get_centered_transform_2d(
             &tilemap_size,

@@ -21,18 +21,22 @@ pub const ZBUF_TILES: f32 = 0.0;
 
 #[derive(AssetCollection)]
 pub struct TextureAssets {
-    #[asset(path = "textures/man_blue_stand.png")]
-    pub man_blue: Handle<Image>,
-
-    #[asset(path = "bevy.png")]
+    #[asset(path = "textures/bevy.png")]
     pub bevy_logo: Handle<Image>,
 
-    #[asset(path = "tiles.png")]
+    #[asset(path = "textures/tiles.png")]
     pub tiles: Handle<Image>,
 
     #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 6, rows = 1))]
-    #[asset(path = "tiles.png")]
+    #[asset(path = "textures/tiles.png")]
     pub tiles_atlas: Handle<TextureAtlas>,
+
+    #[asset(path = "textures/tileset.png")]
+    pub tileset: Handle<Image>,
+
+    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 16, rows = 16))]
+    #[asset(path = "textures/tileset.png")]
+    pub tileset_atlas: Handle<TextureAtlas>,
 }
 
 #[derive(AssetCollection)]

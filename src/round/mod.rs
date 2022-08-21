@@ -20,12 +20,10 @@ const PLAYER_COLORS: [Color; 4] = [BLUE, ORANGE, MAGENTA, GREEN];
 
 const PLAYER_SIZE: f32 = 50.;
 const MOV_SPEED: f32 = 0.1;
-const ROT_SPEED: f32 = 0.15;
 const MAX_SPEED: f32 = 7.5;
 const FRICTION: f32 = 0.98;
 const DRIFT: f32 = 0.95;
 const ARENA_SIZE: f32 = 720.0;
-const CUBE_SIZE: f32 = 0.2;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Pod, Zeroable)]
@@ -42,7 +40,6 @@ pub struct Velocity(pub Vec2);
 #[derive(Default, Reflect, Component)]
 pub struct PlayerControls {
     accel: f32,
-    steer: f32,
 }
 
 #[derive(Default, Reflect, Hash, Component)]
@@ -96,7 +93,8 @@ pub fn input(
 }
 
 pub fn setup_round(mut commands: Commands) {
-    commands.insert_resource(FrameCount::default());
+    commands.init_resource::<FrameCount>();
+    commands.init_resource::<CursorCoordinates>();
 }
 
 pub fn spawn_players(
@@ -177,14 +175,6 @@ pub fn apply_inputs(
             InputStatus::Disconnected => 0, // disconnected players do nothing
         };
 
-        c.steer = if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
-            1.
-        } else if input & INPUT_LEFT == 0 && input & INPUT_RIGHT != 0 {
-            -1.
-        } else {
-            0.
-        };
-
         c.accel = if input & INPUT_DOWN != 0 && input & INPUT_UP == 0 {
             -1.
         } else if input & INPUT_DOWN == 0 && input & INPUT_UP != 0 {
@@ -219,7 +209,8 @@ pub fn update_velocity(mut query: Query<(&Transform, &mut Velocity, &PlayerContr
 }
 
 pub fn move_players(
-    mut query: Query<(&mut Transform, &Velocity, &PlayerControls), With<Rollback>>,
+    cursor_coords: Res<CursorCoordinates>,
+    mut query: Query<(&mut Transform, &Velocity), With<Rollback>>,
     tilemap_query: Query<(&TilemapSize, &TilemapTileSize)>,
 ) {
     let mut map_width = 0.0;
@@ -228,19 +219,14 @@ pub fn move_players(
         map_width = map_size.x as f32 * tile_size.x;
         map_height = map_size.y as f32 * tile_size.y;
     }
-    for (mut t, v, c) in query.iter_mut() {
+    for (mut t, v) in query.iter_mut() {
         let vel = &v.0;
-        let up = t.up().xy();
 
-        // rotate car
-        let rot_factor = (vel.length() / MAX_SPEED).clamp(0.0, 1.0); // cannot rotate while standing still
-        let rot = if vel.dot(up) >= 0.0 {
-            c.steer * ROT_SPEED * rot_factor
-        } else {
-            // negate rotation while driving backwards
-            c.steer * ROT_SPEED * rot_factor * -1.0
-        };
-        t.rotate(Quat::from_rotation_z(rot));
+        // Rotate transform towards cursor
+        let mouse_translation = cursor_coords.0;
+        let to_mouse = (mouse_translation - t.translation.xy()).normalize();
+        let rotate_to_mouse = Quat::from_rotation_arc(Vec3::Y, to_mouse.extend(0.));
+        t.rotation = rotate_to_mouse;
 
         // apply velocity
         t.translation.x += vel.x;
