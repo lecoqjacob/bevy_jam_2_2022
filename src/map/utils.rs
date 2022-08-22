@@ -2,7 +2,7 @@ use crate::map::*;
 
 pub fn wrap_borders_system(
     windows: ResMut<Windows>,
-    mut query: Query<&mut Transform, With<CreatureType>>,
+    mut query: Query<&mut Transform, With<Creature>>,
 ) {
     if let Some(window) = windows.get_primary() {
         let width = window.width();

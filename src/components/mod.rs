@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{impl_new, prelude::*};
 
 #[derive(Component, Reflect, Default, Debug)]
 pub struct BulletReady(pub bool);
@@ -30,19 +30,30 @@ impl Direction {
 
 // TODO: Maybe generalize this?
 #[derive(Default, Clone, Debug, PartialEq, Copy, Component, Eq, Hash)]
-pub struct CreatureType(pub usize);
+pub struct Creature(pub usize);
 
-impl From<usize> for CreatureType {
+impl From<usize> for Creature {
     fn from(val: usize) -> Self {
-        CreatureType(val)
+        Creature(val)
     }
 }
 
-impl std::fmt::Display for CreatureType {
+impl std::fmt::Display for Creature {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "Type {}", self.0)
     }
 }
 
+// #[derive(Component, Clone, Debug)]
+// pub struct CreatureTarget(pub usize, pub Entity);
+
 #[derive(Component, Clone, Debug)]
-pub struct CreatureTarget(pub usize, pub Entity);
+pub struct CreatureFollow {
+    pub target: Entity,
+    pub distance: f32,
+}
+
+impl_new!(CreatureFollow, target: Entity, distance: f32);
+
+#[derive(Component, Debug)]
+pub struct CollectionRing;

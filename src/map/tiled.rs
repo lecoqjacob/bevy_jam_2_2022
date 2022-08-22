@@ -206,28 +206,36 @@ pub fn process_loaded_maps(
                                         },
                                         ..Default::default()
                                     })
+                                    .insert(RoundEntity)
                                     .id();
                                 tile_storage.set(&tile_pos, Some(tile_entity));
                             }
                         }
 
-                        commands.entity(layer_entity).insert_bundle(TilemapBundle {
-                            grid_size,
-                            size: map_size,
-                            storage: tile_storage,
-                            texture: TilemapTexture(
-                                tiled_map.tilesets.get(&tileset.first_gid).unwrap().clone_weak(),
-                            ),
-                            tile_size,
-                            spacing: tile_spacing,
-                            transform: bevy_ecs_tilemap::helpers::get_centered_transform_2d(
-                                &map_size,
-                                &tile_size,
-                                layer.layer_index as f32,
-                            ) * Transform::from_xyz(offset_x, -offset_y, 0.0),
-                            mesh_type,
-                            ..Default::default()
-                        });
+                        commands
+                            .entity(layer_entity)
+                            .insert_bundle(TilemapBundle {
+                                grid_size,
+                                size: map_size,
+                                storage: tile_storage,
+                                texture: TilemapTexture(
+                                    tiled_map
+                                        .tilesets
+                                        .get(&tileset.first_gid)
+                                        .unwrap()
+                                        .clone_weak(),
+                                ),
+                                tile_size,
+                                spacing: tile_spacing,
+                                transform: bevy_ecs_tilemap::helpers::get_centered_transform_2d(
+                                    &map_size,
+                                    &tile_size,
+                                    layer.layer_index as f32,
+                                ) * Transform::from_xyz(offset_x, -offset_y, 0.0),
+                                mesh_type,
+                                ..Default::default()
+                            })
+                            .insert(RoundEntity);
 
                         layer_storage.storage.insert(layer.layer_index, layer_entity);
                     }

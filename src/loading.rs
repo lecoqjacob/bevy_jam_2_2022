@@ -1,48 +1,26 @@
 use crate::prelude::*;
 use bevy_asset_loader::prelude::*;
 
-/// Size of the sprite assets
-pub const SPRITE_SIZE: f32 = 16.0;
-
-/// Size of each tile for rendering
-pub const TILE_SIZE: f32 = 32.0;
-
-/// Z-buffer plane for player entities
-pub const ZBUF_PLAYER: f32 = 10.0;
-
-/// Z-buffer plane for moving entities (creatures...)
-pub const ZBUF_CREATURES: f32 = 5.0;
-
-/// Z-buffer plane for static entities (items...)
-pub const ZBUF_ITEMS: f32 = 1.0;
-
-/// Z-buffer plane for map tiles
-pub const ZBUF_TILES: f32 = 0.0;
-
 #[derive(AssetCollection)]
 pub struct TextureAssets {
     #[asset(path = "textures/bevy.png")]
     pub bevy_logo: Handle<Image>,
 
-    #[asset(path = "textures/tiles.png")]
-    pub tiles: Handle<Image>,
-
     #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 6, rows = 1))]
     #[asset(path = "textures/tiles.png")]
     pub tiles_atlas: Handle<TextureAtlas>,
-
-    #[asset(path = "textures/tileset.png")]
-    pub tileset: Handle<Image>,
-
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 16, rows = 16))]
-    #[asset(path = "textures/tileset.png")]
-    pub tileset_atlas: Handle<TextureAtlas>,
 
     #[asset(path = "textures/gun.png")]
     pub gun: Handle<Image>,
 
     #[asset(path = "textures/bullet.png")]
     pub bullet: Handle<Image>,
+
+    #[asset(path = "textures/crosshair.png")]
+    pub ring: Handle<Image>,
+
+    #[asset(path = "textures/crosshair2.png")]
+    pub ring2: Handle<Image>,
 }
 
 #[derive(AssetCollection)]

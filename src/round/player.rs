@@ -2,8 +2,9 @@ use crate::round::*;
 
 pub mod player_settings {
     pub const DEFAULT_ROT_SPEED: f32 = 360.;
-    pub const DEFAULT_PLAYER_SIZE: f32 = 15.;
+    pub const DEFAULT_PLAYER_SIZE: f32 = 25.;
     pub const DEFAULT_MOVE_SPEED: f32 = 300.;
+    pub const COLLECTION_DISTANCE: f32 = 100.;
 }
 
 #[derive(Debug, Default, Component)]
@@ -15,6 +16,7 @@ pub struct Player {
     pub rotation_speed: f32,
     /// linear speed in meters per second
     pub movement_speed: f32,
+    pub active_zombies: u32,
 }
 
 impl Player {
@@ -24,6 +26,7 @@ impl Player {
             size: player_settings::DEFAULT_PLAYER_SIZE,
             movement_speed: player_settings::DEFAULT_MOVE_SPEED,
             rotation_speed: f32::to_radians(player_settings::DEFAULT_ROT_SPEED),
+            ..Default::default()
         }
     }
 }
@@ -63,6 +66,35 @@ pub fn kill_players(
             if distance < (player.size / 2.) {
                 commands.entity(player_ent).despawn_recursive();
                 commands.entity(bullet_ent).despawn_recursive();
+            }
+        }
+    }
+}
+
+pub fn collection(
+    mut commands: Commands,
+    rng: Res<RandomNumbers>,
+    mut players: Query<(Entity, &mut Player, &Transform)>,
+    player_rings: Query<&Parent, (With<CollectionRing>, Without<Creature>)>,
+    creature_query: Query<
+        (Entity, &Transform),
+        (With<Creature>, Without<CreatureFollow>, Without<CollectionRing>),
+    >,
+) {
+    for ring_parent in player_rings.iter() {
+        for (creature_ent, creature_transform) in creature_query.iter() {
+            if let Ok((player_ent, mut player, transform)) = players.get_mut(**ring_parent) {
+                let distance =
+                    Vec2::distance(transform.translation.xy(), creature_transform.translation.xy());
+
+                if distance < player_settings::COLLECTION_DISTANCE {
+                    let distance = rng.range(
+                        creature_settings::FOLLOW_PLAYER_MIN_DISTANCE,
+                        creature_settings::FOLLOW_PLAYER_MAX_DISTANCE,
+                    );
+                    commands.entity(creature_ent).insert(CreatureFollow::new(player_ent, distance));
+                    player.active_zombies += 1;
+                }
             }
         }
     }

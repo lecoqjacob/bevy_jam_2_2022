@@ -1,7 +1,7 @@
 // This is the folder to handle the `round` or `in_game` state
 
 use crate::prelude::*;
-use bevy::math::Vec3Swizzles;
+use bevy::{math::Vec3Swizzles, sprite::MaterialMesh2dBundle};
 use bevy_ggrs::{Rollback, RollbackIdProvider, SessionType};
 use bytemuck::{Pod, Zeroable};
 use ggrs::{InputStatus, P2PSession, PlayerHandle};
@@ -10,11 +10,13 @@ mod bullet;
 mod creature;
 mod input;
 mod player;
+mod ui;
 
 pub use bullet::*;
 pub use creature::*;
 pub use input::*;
 pub use player::*;
+pub use ui::*;
 
 const BLUE: Color = Color::rgb(0.8, 0.6, 0.2);
 const ORANGE: Color = Color::rgb(0., 0.35, 0.8);
@@ -38,6 +40,8 @@ pub fn spawn_players(
     mut rip: ResMut<RollbackIdProvider>,
     player_query: Query<Entity, With<Player>>,
     bullet_query: Query<Entity, With<Bullet>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     info!("Spawning players");
 
@@ -58,7 +62,7 @@ pub fn spawn_players(
                 transform,
                 texture_atlas: textures.tiles_atlas.clone(),
                 sprite: TextureAtlasSprite {
-                    index: 3,
+                    index: 0,
                     color: *color,
                     custom_size: Some(Vec2::new(player_comp.size, player_comp.size)),
                     ..Default::default()
@@ -80,14 +84,27 @@ pub fn spawn_players(
                 sprite: TextureAtlasSprite {
                     index: 3,
                     color: *color,
-                    custom_size: Some(Vec2::new(5., 10.)),
+                    custom_size: Some(Vec2::new(5., 15.)),
                     ..Default::default()
                 },
                 ..Default::default()
             })
+            .insert(RoundEntity)
             .id();
 
-        commands.entity(player).add_child(gun);
+        let ring_color = Color::rgba(color.r(), color.g(), color.b(), 0.2);
+        let ring = commands
+            .spawn_bundle(MaterialMesh2dBundle {
+                transform,
+                mesh: meshes.add(shape::Circle::new(100.).into()).into(),
+                material: materials.add(ColorMaterial::from(ring_color)),
+                ..default()
+            })
+            .insert(CollectionRing)
+            .insert(RoundEntity)
+            .id();
+
+        commands.entity(player).add_child(gun).add_child(ring);
 
         if follow_player.is_none() {
             follow_player = Some(player);
@@ -98,8 +115,10 @@ pub fn spawn_players(
         let direction_vector =
             Vec2::new(rng.rand::<f32>() * 2.0 - 1.0, rng.rand::<f32>() * 2.0 - 1.0).normalize();
 
-        let x = rng.range(-settings.width, settings.width);
-        let y = rng.range(-settings.height, settings.height);
+        let width = settings.width / 2.;
+        let height = settings.height / 2.;
+        let x = rng.range(-width, width);
+        let y = rng.range(-height, height);
 
         commands
             .spawn()
@@ -117,8 +136,8 @@ pub fn spawn_players(
                 ..SpriteBundle::default()
             })
             .insert(crate::components::Direction(direction_vector))
-            .insert(CreatureType(1))
-            .insert(CreatureTarget(0, follow_player.unwrap()))
+            .insert(Creature(1))
+            // .insert(CreatureTarget(0, follow_player.unwrap()))
             .insert(RoundEntity);
     }
 }
@@ -139,15 +158,17 @@ pub fn check_win(mut commands: Commands, player: Query<&Player>) {
 }
 
 pub fn cleanup_round(mut commands: Commands) {
+    commands.remove_resource::<CacheGrid>();
     commands.remove_resource::<FrameCount>();
+    commands.remove_resource::<SessionType>();
     commands.remove_resource::<LocalHandles>();
     commands.remove_resource::<P2PSession<GGRSConfig>>();
-    commands.remove_resource::<SessionType>();
 }
 
 pub struct RoundPlugin;
 impl Plugin for RoundPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugin(RoundUIPlugin);
         app.add_event::<ApplyForceEvent>();
 
         // Local

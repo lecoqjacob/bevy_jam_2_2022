@@ -69,14 +69,14 @@ impl Plugin for NetworkingPlugin {
                         RollbackStages::Rollback,
                         RollbackStages::Creature,
                         SystemStage::parallel()
-                            .with_system(wrap_borders_system)
-                            .with_system(move_creatures)
-                            .with_system(cache_grid_update_system.after(move_creatures))
+                            .with_system(collection)
+                            .with_system(creatures_follow)
+                            .with_system(cache_grid_update_system.after(creatures_follow))
                             .with_system_set(
                                 SystemSet::new()
                                     .label("force_adding")
-                                    .with_system(chase_system)
-                                    .with_system(flocking_system.after(chase_system)),
+                                    .with_system(follow_system)
+                                    .with_system(flocking_system.after(follow_system)),
                             )
                             .with_system(apply_force_event_system.after("force_adding")),
                     )
