@@ -10,6 +10,7 @@ mod networking;
 mod random;
 mod round;
 mod state;
+mod tiled;
 mod utils;
 
 mod prelude {
@@ -27,6 +28,8 @@ mod prelude {
     pub use bracket_pathfinding::prelude::*;
     pub use bracket_random::prelude::*;
 
+    pub use tiled::*;
+
     pub use crate::camera::*;
     pub use crate::components::*;
     pub use crate::loading::*;
@@ -36,6 +39,7 @@ mod prelude {
     pub use crate::random::*;
     pub use crate::round::*;
     pub use crate::state::*;
+    pub use crate::tiled::*;
     pub use crate::utils::*;
 
     pub const SCREEN_WIDTH: i32 = 80;
@@ -71,6 +75,7 @@ pub fn app() -> App {
     app.add_loopless_state(AppState::AssetLoading)
         .add_plugins(DefaultPlugins)
         .add_plugin(TilemapPlugin)
+        .add_plugin(TiledMapPlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(LoadingPlugin)
         .add_plugins(MenuPlugins)
