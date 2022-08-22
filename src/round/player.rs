@@ -75,27 +75,22 @@ pub fn collection(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
     mut players: Query<(Entity, &mut Player, &Transform)>,
-    player_rings: Query<&Parent, (With<CollectionRing>, Without<Creature>)>,
     creature_query: Query<
         (Entity, &Transform),
         (With<Creature>, Without<CreatureFollow>, Without<CollectionRing>),
     >,
 ) {
-    for ring_parent in player_rings.iter() {
-        for (creature_ent, creature_transform) in creature_query.iter() {
-            if let Ok((player_ent, mut player, transform)) = players.get_mut(**ring_parent) {
-                let distance =
-                    Vec2::distance(transform.translation.xy(), creature_transform.translation.xy());
-
-                if distance < player_settings::COLLECTION_DISTANCE {
-                    let distance = rng.range(
-                        creature_settings::FOLLOW_PLAYER_MIN_DISTANCE,
-                        creature_settings::FOLLOW_PLAYER_MAX_DISTANCE,
-                    );
-                    commands.entity(creature_ent).insert(CreatureFollow::new(player_ent, distance));
-                    player.active_zombies += 1;
-                }
-            }
+    for (player_ent, mut player, transform) in &mut players {
+        for (creature_ent, _) in creature_query.iter().filter(|(_, t)| {
+            Vec2::distance(transform.translation.xy(), t.translation.xy())
+                < player_settings::COLLECTION_DISTANCE
+        }) {
+            let follow_distance = rng.range(
+                creature_settings::FOLLOW_PLAYER_MIN_DISTANCE,
+                creature_settings::FOLLOW_PLAYER_MAX_DISTANCE,
+            );
+            commands.entity(creature_ent).insert(CreatureFollow::new(player_ent, follow_distance));
+            player.active_zombies += 1;
         }
     }
 }
