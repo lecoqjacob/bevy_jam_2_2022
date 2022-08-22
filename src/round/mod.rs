@@ -1,17 +1,20 @@
 // This is the folder to handle the `round` or `in_game` state
 
 use crate::prelude::*;
+use bevy::math::Vec3Swizzles;
 use bevy_ggrs::{Rollback, RollbackIdProvider, SessionType};
 use bytemuck::{Pod, Zeroable};
 use ggrs::{InputStatus, P2PSession, PlayerHandle};
 
+mod bullet;
+mod creature;
 mod input;
 mod player;
-mod rollback;
 
+pub use bullet::*;
+pub use creature::*;
 pub use input::*;
 pub use player::*;
-pub use rollback::*;
 
 const BLUE: Color = Color::rgb(0.8, 0.6, 0.2);
 const ORANGE: Color = Color::rgb(0., 0.35, 0.8);
@@ -22,19 +25,15 @@ const PLAYER_COLORS: [Color; 4] = [BLUE, ORANGE, MAGENTA, GREEN];
 #[derive(Component)]
 pub struct RoundEntity;
 
-#[derive(Default, Reflect, Hash, Component)]
-#[reflect(Hash)]
-pub struct FrameCount {
-    pub frame: u32,
-}
-
 pub fn setup_round(mut commands: Commands) {
     commands.init_resource::<FrameCount>();
-    commands.init_resource::<CursorCoordinates>();
+    commands.init_resource::<CacheGrid>();
 }
 
 pub fn spawn_players(
     mut commands: Commands,
+    rng: Res<RandomNumbers>,
+    settings: Res<MapSettings>,
     textures: Res<TextureAssets>,
     mut rip: ResMut<RollbackIdProvider>,
     player_query: Query<Entity, With<Player>>,
@@ -49,6 +48,7 @@ pub fn spawn_players(
         commands.entity(bullet).despawn_recursive();
     }
 
+    let mut follow_player: Option<Entity> = None;
     for (handle, color) in PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
         let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
 
@@ -88,6 +88,38 @@ pub fn spawn_players(
             .id();
 
         commands.entity(player).add_child(gun);
+
+        if follow_player.is_none() {
+            follow_player = Some(player);
+        }
+    }
+
+    for _ in 0..5 {
+        let direction_vector =
+            Vec2::new(rng.rand::<f32>() * 2.0 - 1.0, rng.rand::<f32>() * 2.0 - 1.0).normalize();
+
+        let x = rng.range(-settings.width, settings.width);
+        let y = rng.range(-settings.height, settings.height);
+
+        commands
+            .spawn()
+            .insert_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::BLUE,
+                    custom_size: Some(Vec2::new(5.0, 10.0)),
+                    ..Sprite::default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(x, y, 5.0),
+                    rotation: Quat::from_rotation_z(-direction_vector.x.atan2(direction_vector.y)),
+                    ..Transform::default()
+                },
+                ..SpriteBundle::default()
+            })
+            .insert(crate::components::Direction(direction_vector))
+            .insert(CreatureType(1))
+            .insert(CreatureTarget(0, follow_player.unwrap()))
+            .insert(RoundEntity);
     }
 }
 
@@ -97,11 +129,10 @@ pub fn print_p2p_events(mut session: ResMut<P2PSession<GGRSConfig>>) {
     }
 }
 
-pub fn check_win(mut commands: Commands) {
-    let condition = false;
-    let confirmed = false;
+pub fn check_win(mut commands: Commands, player: Query<&Player>) {
+    let players = player.iter().count();
 
-    if condition && confirmed {
+    if players < NUM_PLAYERS {
         commands.insert_resource(NextState(AppState::Win));
         commands.insert_resource(MatchData { result: "Orange won!".to_owned() });
     }
@@ -117,6 +148,8 @@ pub fn cleanup_round(mut commands: Commands) {
 pub struct RoundPlugin;
 impl Plugin for RoundPlugin {
     fn build(&self, app: &mut App) {
+        app.add_event::<ApplyForceEvent>();
+
         // Local
         app.add_enter_system_set(
             AppState::RoundLocal,

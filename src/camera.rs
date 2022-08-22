@@ -3,9 +3,6 @@ use crate::prelude::*;
 #[derive(Component)]
 pub struct MainCamera;
 
-#[derive(Default, Debug)]
-pub struct CursorCoordinates(pub Vec2);
-
 fn setup_game_camera(mut commands: Commands) {
     // Add a 2D Camera
     let mut cam = Camera2dBundle::default();

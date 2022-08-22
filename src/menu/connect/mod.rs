@@ -23,7 +23,9 @@ pub fn create_matchbox_socket(mut commands: Commands, connect_data: Res<ConnectD
     let lobby_id = &connect_data.lobby_id;
     let room_url = format!("{MATCHBOX_ADDR}/{lobby_id}");
     let (socket, message_loop) = WebRtcSocket::new(room_url);
+
     IoTaskPool::get().spawn(message_loop).detach();
+
     commands.insert_resource(Some(socket));
     commands.remove_resource::<ConnectData>();
 }

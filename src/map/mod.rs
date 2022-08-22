@@ -2,6 +2,14 @@ use crate::{impl_new, prelude::*};
 use bevy::prelude::*;
 use bevy_ggrs::SessionType;
 
+mod cache_grid;
+mod tiled;
+mod utils;
+
+pub use self::tiled::*;
+pub use cache_grid::*;
+pub use utils::*;
+
 const TILE_MAP_WIDTH: u32 = 128;
 const TILE_MAP_HEIGHT: u32 = 128;
 
@@ -23,10 +31,13 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>, session_type:
     let tilemap_size = TilemapSize { x: TILE_MAP_WIDTH, y: TILE_MAP_HEIGHT };
 
     let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
-
     let map_handle: Handle<TiledMap> = asset_server.load("maps/map.tmx");
 
-    commands.spawn().insert_bundle(TiledMapBundle { tiled_map: map_handle, ..Default::default() });
+    // Spawn Tilemap
+    commands
+        .spawn()
+        .insert_bundle(TiledMapBundle { tiled_map: map_handle, ..Default::default() })
+        .insert(RoundEntity);
 
     commands.insert_resource(MapSettings::new(
         tilemap_size.x as f32 * tile_size.x,

@@ -86,14 +86,14 @@ pub fn setup_win_ui(
 }
 
 pub fn btn_listeners(
-    mut state: ResMut<State<AppState>>,
+    mut commands: Commands,
     mut interaction_query: Query<(&Interaction, &MenuWinBtn), Changed<Interaction>>,
 ) {
     for (interaction, btn) in interaction_query.iter_mut() {
         if let Interaction::Clicked = *interaction {
             match btn {
                 MenuWinBtn::Back => {
-                    state.set(AppState::MenuMain).expect("Could not change state.");
+                    commands.insert_resource(NextState(AppState::MenuMain));
                 }
             }
         }

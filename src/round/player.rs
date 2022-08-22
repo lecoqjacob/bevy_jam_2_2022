@@ -6,7 +6,7 @@ pub mod player_settings {
     pub const DEFAULT_MOVE_SPEED: f32 = 300.;
 }
 
-#[derive(Default, Component)]
+#[derive(Debug, Default, Component)]
 pub struct Player {
     pub size: f32,
     pub handle: usize,
@@ -34,42 +34,36 @@ pub struct PlayerControls {
     pub steer: f32,
 }
 
-pub fn reload_bullet(
-    inputs: Res<Vec<(GameInput, InputStatus)>>,
-    mut query: Query<(&Player, &mut BulletReady)>,
+pub fn move_players(
+    map_settings: Res<MapSettings>,
+    mut query: Query<(&mut Transform, &PlayerControls, &Player), With<Rollback>>,
 ) {
-    for (player, mut bullet_ready) in query.iter_mut() {
-        let input = inputs[player.handle].0.inp;
-        if !is_firing(input) {
-            bullet_ready.0 = true;
-        }
+    for (mut t, c, p) in query.iter_mut() {
+        t.rotate_z(c.steer * p.rotation_speed * TIME_STEP);
+        apply_forward_delta(&mut t, p.movement_speed, c.accel);
+
+        // constrain cube to plane
+        let (map_width, map_height) = (map_settings.width, map_settings.height);
+        t.translation.x = t.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
+        t.translation.y = t.translation.y.clamp(-map_height / 2.0, map_height / 2.0);
     }
 }
 
-pub fn fire_bullets(
+pub fn kill_players(
     mut commands: Commands,
-    textures: Res<TextureAssets>,
-    mut rip: ResMut<RollbackIdProvider>,
-    inputs: Res<Vec<(GameInput, InputStatus)>>,
-    mut player_query: Query<(&Transform, &Player, &mut BulletReady)>,
+    player_query: Query<(Entity, &Player, &Transform), (With<Player>, Without<Bullet>)>,
+    bullet_query: Query<(Entity, &Transform), With<Bullet>>,
 ) {
-    for (transform, player, mut bullet_ready) in player_query.iter_mut() {
-        let (input, _) = inputs[player.handle];
-        if is_firing(input.inp) && bullet_ready.0 {
-            let movement_direction = transform.rotation * Vec3::Y;
-            let trans = transform.translation + movement_direction * player.size;
-
-                commands
-                .spawn_bundle(SpriteBundle {
-                    transform: transform.with_translation(trans),
-                    texture: textures.bullet.clone(),
-                    sprite: Sprite { custom_size: Some(Vec2::new(5., 5.)), ..default() },
-                    ..default()
-                })
-                .insert(Bullet)
-                .insert(Rollback::new(rip.next_id()));
-
-            bullet_ready.0 = false;
+    for (player_ent, player, player_transform) in player_query.iter() {
+        for (bullet_ent, bullet_transform) in bullet_query.iter() {
+            let distance = Vec2::distance(
+                player_transform.translation.xy(),
+                bullet_transform.translation.xy(),
+            );
+            if distance < (player.size / 2.) {
+                commands.entity(player_ent).despawn_recursive();
+                commands.entity(bullet_ent).despawn_recursive();
+            }
         }
     }
 }

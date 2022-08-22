@@ -10,7 +10,6 @@ mod networking;
 mod random;
 mod round;
 mod state;
-mod tiled;
 mod utils;
 
 mod prelude {
@@ -39,19 +38,11 @@ mod prelude {
     pub use crate::random::*;
     pub use crate::round::*;
     pub use crate::state::*;
-    pub use crate::tiled::*;
     pub use crate::utils::*;
 
     pub const SCREEN_WIDTH: i32 = 80;
     pub const SCREEN_HEIGHT: i32 = 60;
     pub const UI_HEIGHT: i32 = 10;
-
-    pub const NUM_PLAYERS: usize = 2;
-    pub const ROLLBACK_SYSTEMS: &str = "rollback_systems";
-    pub const CHECKSUM_UPDATE: &str = "checksum_update";
-    pub const MAX_PREDICTION: usize = 12;
-    pub const INPUT_DELAY: usize = 2;
-    pub const CHECK_DISTANCE: usize = 2;
 }
 
 pub use prelude::*;
@@ -65,8 +56,8 @@ pub fn app() -> App {
         fit_canvas_to_parent: true,
         title: LAUNCHER_TITLE.to_string(),
         canvas: Some("#bevy".to_string()),
-        width: SCREEN_WIDTH as f32 * 10.0,
-        height: SCREEN_HEIGHT as f32 * 10.0,
+        // width: SCREEN_WIDTH as f32 * 10.0,
+        // height: SCREEN_HEIGHT as f32 * 10.0,
         ..Default::default()
     })
     .insert_resource(ImageSettings::default_nearest())
