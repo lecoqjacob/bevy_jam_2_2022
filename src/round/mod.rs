@@ -18,12 +18,6 @@ pub use input::*;
 pub use player::*;
 pub use ui::*;
 
-const BLUE: Color = Color::rgb(0.8, 0.6, 0.2);
-const ORANGE: Color = Color::rgb(0., 0.35, 0.8);
-const MAGENTA: Color = Color::rgb(0.9, 0.2, 0.2);
-const GREEN: Color = Color::rgb(0.35, 0.7, 0.35);
-const PLAYER_COLORS: [Color; 4] = [BLUE, ORANGE, MAGENTA, GREEN];
-
 #[derive(Component)]
 pub struct RoundEntity;
 
@@ -37,10 +31,10 @@ pub fn spawn_players(
     rng: Res<RandomNumbers>,
     settings: Res<MapSettings>,
     textures: Res<TextureAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
     mut rip: ResMut<RollbackIdProvider>,
     player_query: Query<Entity, With<Player>>,
     bullet_query: Query<Entity, With<Bullet>>,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     info!("Spawning players");
@@ -52,11 +46,10 @@ pub fn spawn_players(
         commands.entity(bullet).despawn_recursive();
     }
 
-    let mut follow_player: Option<Entity> = None;
-    for (handle, color) in PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
+    for (handle, color) in player_settings::PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
         let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
 
-        let player_comp = Player::new(handle);
+        let player_comp = Player::new(handle, *color);
         let player = commands
             .spawn_bundle(SpriteSheetBundle {
                 transform,
@@ -77,8 +70,8 @@ pub fn spawn_players(
             .insert(RoundEntity)
             .id();
 
-        let gun = commands
-            .spawn_bundle(SpriteSheetBundle {
+        commands.entity(player).add_children(|p| {
+            p.spawn_bundle(SpriteSheetBundle {
                 transform: transform.with_translation(Vec3::new(0., 10., 5.)),
                 texture_atlas: textures.tiles_atlas.clone(),
                 sprite: TextureAtlasSprite {
@@ -89,56 +82,36 @@ pub fn spawn_players(
                 },
                 ..Default::default()
             })
-            .insert(RoundEntity)
-            .id();
+            .insert(RoundEntity);
 
-        let ring_color = Color::rgba(color.r(), color.g(), color.b(), 0.2);
-        let ring = commands
-            .spawn_bundle(MaterialMesh2dBundle {
+            p.spawn_bundle(MaterialMesh2dBundle {
                 transform,
                 mesh: meshes.add(shape::Circle::new(100.).into()).into(),
-                material: materials.add(ColorMaterial::from(ring_color)),
+                material: materials.add(ColorMaterial::from(Color::rgba(
+                    color.r(),
+                    color.g(),
+                    color.b(),
+                    0.2,
+                ))),
                 ..default()
             })
-            .insert(CollectionRing)
-            .insert(RoundEntity)
-            .id();
-
-        commands.entity(player).add_child(gun).add_child(ring);
-
-        if follow_player.is_none() {
-            follow_player = Some(player);
-        }
+            .insert(RoundEntity);
+        });
     }
 
-    for _ in 0..5 {
-        let direction_vector =
-            Vec2::new(rng.rand::<f32>() * 2.0 - 1.0, rng.rand::<f32>() * 2.0 - 1.0).normalize();
+    for _ in 0..20 {
+        let map_width = settings.width / 2.;
+        let map_height = settings.height / 2.;
+        let x = rng.range(-map_width, map_width);
+        let y = rng.range(-map_height, map_height);
 
-        let width = settings.width / 2.;
-        let height = settings.height / 2.;
-        let x = rng.range(-width, width);
-        let y = rng.range(-height, height);
+        // let size = rng.range(
+        //     creature_settings::DEFAULT_CREATURE_SIZE.0,
+        //     creature_settings::DEFAULT_CREATURE_SIZE.1,
+        // );
 
-        commands
-            .spawn()
-            .insert_bundle(SpriteBundle {
-                sprite: Sprite {
-                    color: Color::BLUE,
-                    custom_size: Some(Vec2::new(5.0, 10.0)),
-                    ..Sprite::default()
-                },
-                transform: Transform {
-                    translation: Vec3::new(x, y, 5.0),
-                    rotation: Quat::from_rotation_z(-direction_vector.x.atan2(direction_vector.y)),
-                    ..Transform::default()
-                },
-                ..SpriteBundle::default()
-            })
-            .insert(crate::components::Direction(direction_vector))
-            .insert(Creature(1))
-            // .insert(CreatureTarget(0, follow_player.unwrap()))
-            .insert(RoundEntity);
+        let size = creature_settings::DEFAULT_CREATURE_SIZE.0;
+        spawn_zombie(&mut commands, &mut rip, &rng, x, y, size);
     }
 }
 

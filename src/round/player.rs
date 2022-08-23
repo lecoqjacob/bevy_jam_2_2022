@@ -1,28 +1,38 @@
 use crate::round::*;
 
 pub mod player_settings {
+    use crate::colors::*;
+    use bevy::prelude::Color;
+
     pub const DEFAULT_ROT_SPEED: f32 = 360.;
     pub const DEFAULT_PLAYER_SIZE: f32 = 25.;
     pub const DEFAULT_MOVE_SPEED: f32 = 300.;
-    pub const COLLECTION_DISTANCE: f32 = 100.;
+
+    pub const FOLLOW_COLLECTION_DISTANCE: f32 = 100.;
+    pub const TARGET_COLLECTION_DISTANCE: f32 = 100.;
+
+    pub const PLAYER_COLORS: [Color; 4] = [BLUE, ORANGE, MAGENTA, GREEN];
 }
 
 #[derive(Debug, Default, Component)]
 pub struct Player {
     pub size: f32,
     pub handle: usize,
+    pub color: Color,
 
     /// rotation speed in radians per second
     pub rotation_speed: f32,
     /// linear speed in meters per second
     pub movement_speed: f32,
-    pub active_zombies: u32,
+    pub attacking_zombies: u32,
+    pub active_zombies: Vec<Entity>,
 }
 
 impl Player {
-    pub fn new(handle: usize) -> Self {
+    pub fn new(handle: usize, color: Color) -> Self {
         Self {
             handle,
+            color,
             size: player_settings::DEFAULT_PLAYER_SIZE,
             movement_speed: player_settings::DEFAULT_MOVE_SPEED,
             rotation_speed: f32::to_radians(player_settings::DEFAULT_ROT_SPEED),
@@ -71,26 +81,94 @@ pub fn kill_players(
     }
 }
 
-pub fn collection(
+pub fn follow_collection(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
     mut players: Query<(Entity, &mut Player, &Transform)>,
-    creature_query: Query<
-        (Entity, &Transform),
-        (With<Creature>, Without<CreatureFollow>, Without<CollectionRing>),
+    mut creature_query: Query<
+        (Entity, &mut Sprite, &Transform),
+        (With<CreatureType>, Without<CreatureFollow>),
     >,
 ) {
     for (player_ent, mut player, transform) in &mut players {
-        for (creature_ent, _) in creature_query.iter().filter(|(_, t)| {
+        for (creature_ent, mut sprite, _) in creature_query.iter_mut().filter(|(_, _, t)| {
             Vec2::distance(transform.translation.xy(), t.translation.xy())
-                < player_settings::COLLECTION_DISTANCE
+                < player_settings::FOLLOW_COLLECTION_DISTANCE
         }) {
             let follow_distance = rng.range(
                 creature_settings::FOLLOW_PLAYER_MIN_DISTANCE,
                 creature_settings::FOLLOW_PLAYER_MAX_DISTANCE,
             );
-            commands.entity(creature_ent).insert(CreatureFollow::new(player_ent, follow_distance));
-            player.active_zombies += 1;
+
+            player.active_zombies.push(creature_ent);
+            sprite.color = player.color;
+            commands
+                .entity(creature_ent)
+                .insert(CreatureType(Some(player_ent)))
+                .insert(CreatureFollow(follow_distance));
+        }
+    }
+}
+
+pub fn target_collection_players(
+    mut commands: Commands,
+    rng: Res<RandomNumbers>,
+    mut players: Query<(Entity, &mut Player, &Transform)>,
+    creature_query: Query<
+        (Entity, &Transform, &CreatureType),
+        (With<CreatureFollow>, Without<CreatureTarget>),
+    >,
+) {
+    for (player_ent, mut player, transform) in &mut players {
+        for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, c)| {
+            Vec2::distance(transform.translation.xy(), t.translation.xy())
+                < player_settings::TARGET_COLLECTION_DISTANCE
+                && c.0.unwrap() != player_ent
+        }) {
+            let follow_distance = rng.range(
+                creature_settings::TARGET_PLAYER_MIN_DISTANCE,
+                creature_settings::TARGET_PLAYER_MAX_DISTANCE,
+            );
+
+            player.attacking_zombies += 1;
+            commands.entity(creature_ent).insert(CreatureTarget::new(player_ent, follow_distance));
+            commands
+                .entity(player_ent)
+                .insert(CreatureTargeted::new(creature_ent, follow_distance));
+        }
+    }
+}
+
+pub fn target_collection_creatures(
+    mut commands: Commands,
+    rng: Res<RandomNumbers>,
+    target_creature_query: Query<
+        (Entity, &Transform, &CreatureType),
+        (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
+    >,
+    creature_query: Query<
+        (Entity, &Transform, &CreatureType),
+        (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
+    >,
+) {
+    for (target_creature_ent, &transform, target_type) in &target_creature_query {
+        for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, creature_type)| {
+            Vec2::distance(transform.translation.xy(), t.translation.xy())
+                < creature_settings::TARGET_COLLECTION_DISTANCE
+                && target_type.0 != creature_type.0
+        }) {
+            let follow_distance = rng.range(
+                creature_settings::TARGET_PLAYER_MIN_DISTANCE,
+                creature_settings::TARGET_PLAYER_MAX_DISTANCE,
+            );
+
+            commands
+                .entity(creature_ent)
+                .insert(CreatureTarget::new(target_creature_ent, follow_distance));
+
+            commands
+                .entity(target_creature_ent)
+                .insert(CreatureTargeted::new(creature_ent, follow_distance));
         }
     }
 }

@@ -28,9 +28,6 @@ pub struct FontAssets {
     #[asset(path = "fonts/dos.ttf")]
     pub dos: Handle<Font>,
 
-    #[asset(path = "fonts/SDS_8x8.ttf")]
-    pub sds_8x8: Handle<Font>,
-
     #[asset(path = "fonts/FiraSans-Bold.ttf")]
     pub fira_sans: Handle<Font>,
 }
@@ -71,7 +68,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub struct LoadingPlugin;
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<RandomNumbers>();
+        app.insert_resource(RandomNumbers::seeded(RANDOM_SEED));
 
         app.add_startup_system(setup)
             .add_exit_system(AppState::AssetLoading, despawn_all_with::<LoadingMenu>)

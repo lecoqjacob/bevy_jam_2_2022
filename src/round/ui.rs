@@ -4,8 +4,6 @@ use crate::round::*;
 pub struct ZombieText;
 
 pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
-    info!("setup_round_ui");
-
     commands
         .spawn_bundle(
             // Create a TextBundle that has a Text with a list of sections.
@@ -31,37 +29,6 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
         )
         .insert(ZombieText)
         .insert(RoundEntity);
-
-    // commands
-    //     .spawn_bundle(NodeBundle {
-    //         style: Style {
-    //             position_type: PositionType::Absolute,
-    //             position: UiRect::all(Val::Px(0.)),
-    //             flex_direction: FlexDirection::ColumnReverse,
-    //             align_content: AlignContent::FlexStart,
-    //             align_items: AlignItems::FlexStart,
-    //             align_self: AlignSelf::FlexStart,
-    //             justify_content: JustifyContent::FlexStart,
-    //             ..Default::default()
-    //         },
-    //         color: Color::NONE.into(),
-    //         ..Default::default()
-    //     })
-    //     .with_children(|parent| {
-    //         // match result string
-    //         parent.spawn_bundle(TextBundle {
-    //             text: Text::from_section(
-    //                 "Active Zombies: 0",
-    //                 TextStyle {
-    //                     font_size: 50.,
-    //                     font: fonts.fira_sans.clone(),
-    //                     color: Color::rgba(1.0, 1.0, 1.0, 0.2),
-    //                 },
-    //             ),
-    //             ..Default::default()
-    //         });
-    //     })
-    //     .insert(RoundEntity);
 }
 
 fn update_round_text(
@@ -74,7 +41,7 @@ fn update_round_text(
 
     for mut text in &mut query {
         if let Some(player) = player {
-            text.sections[1].value = player.1.active_zombies.to_string();
+            text.sections[1].value = player.1.active_zombies.len().to_string();
         }
     }
 }

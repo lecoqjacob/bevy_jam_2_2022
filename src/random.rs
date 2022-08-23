@@ -1,6 +1,8 @@
 use crate::prelude::*;
 use parking_lot::Mutex;
 
+pub const RANDOM_SEED: u64 = 0x3fdc77fb4d7f5d2f;
+
 pub struct RandomNumbers {
     rng: Mutex<RandomNumberGenerator>,
 }

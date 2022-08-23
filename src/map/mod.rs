@@ -4,11 +4,9 @@ use bevy_ggrs::SessionType;
 
 mod cache_grid;
 mod tiled;
-mod utils;
 
 pub use self::tiled::*;
 pub use cache_grid::*;
-pub use utils::*;
 
 const TILE_MAP_WIDTH: u32 = 128;
 const TILE_MAP_HEIGHT: u32 = 128;

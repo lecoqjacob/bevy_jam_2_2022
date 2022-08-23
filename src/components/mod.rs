@@ -6,7 +6,7 @@ pub struct BulletReady(pub bool);
 #[derive(Component, Reflect, Default)]
 pub struct Bullet;
 
-#[derive(Component, Clone, Debug, PartialEq)]
+#[derive(Default, Component, Clone, Debug, PartialEq, Reflect)]
 pub struct Direction(pub Vec2);
 
 // Why no work when adding directly to vec2?
@@ -28,32 +28,29 @@ impl Direction {
     }
 }
 
-// TODO: Maybe generalize this?
-#[derive(Default, Clone, Debug, PartialEq, Copy, Component, Eq, Hash)]
-pub struct Creature(pub usize);
+#[derive(Default, Debug, Eq, PartialEq, Component, Reflect)]
+pub struct CreatureType(pub Option<Entity>);
 
-impl From<usize> for Creature {
-    fn from(val: usize) -> Self {
-        Creature(val)
-    }
-}
+#[derive(Default, Debug, PartialEq, Component, Reflect)]
+pub struct CreatureSize(pub f32);
 
-impl std::fmt::Display for Creature {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Type {}", self.0)
-    }
-}
+#[derive(Default, Component, Debug, Reflect)]
+pub struct CreatureFollow(pub f32);
 
-// #[derive(Component, Clone, Debug)]
-// pub struct CreatureTarget(pub usize, pub Entity);
-
-#[derive(Component, Clone, Debug)]
-pub struct CreatureFollow {
+// Doing the targetting
+#[derive(Reflect, Component, Clone, Debug)]
+pub struct CreatureTarget {
     pub target: Entity,
     pub distance: f32,
 }
 
-impl_new!(CreatureFollow, target: Entity, distance: f32);
+impl_new!(CreatureTarget, target: Entity, distance: f32);
 
-#[derive(Component, Debug)]
-pub struct CollectionRing;
+// being targetted -- feel free to rename
+#[derive(Reflect, Component, Clone, Debug)]
+pub struct CreatureTargeted {
+    pub target: Entity,
+    pub distance: f32,
+}
+
+impl_new!(CreatureTargeted, target: Entity, distance: f32);

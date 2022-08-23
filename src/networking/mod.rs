@@ -48,10 +48,11 @@ impl Plugin for NetworkingPlugin {
         GGRSPlugin::<GGRSConfig>::new()
             .with_update_frequency(FPS)
             .with_input_system(round::input)
-            .register_rollback_type::<Transform>()
-            .register_rollback_type::<BulletReady>()
             .register_rollback_type::<FrameCount>()
             .register_rollback_type::<Checksum>()
+            .register_rollback_type::<Transform>()
+            .register_rollback_type::<BulletReady>()
+            .register_rollback_type::<crate::components::Direction>()
             .with_rollback_schedule(
                 Schedule::default()
                     .with_stage(
@@ -69,8 +70,11 @@ impl Plugin for NetworkingPlugin {
                         RollbackStages::Rollback,
                         RollbackStages::Creature,
                         SystemStage::parallel()
-                            .with_system(collection)
+                            .with_system(follow_collection)
+                            // .with_system(target_collection_players)
+                            // .with_system(target_collection_creatures)
                             .with_system(creatures_follow)
+                            // .with_system(creatures_target)
                             .with_system(cache_grid_update_system.after(creatures_follow))
                             .with_system_set(
                                 SystemSet::new()

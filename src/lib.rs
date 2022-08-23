@@ -22,9 +22,6 @@ mod prelude {
     pub use ggrs::Config;
 
     pub use bevy_ecs_tilemap::prelude::*;
-
-    pub use bracket_geometry::prelude::*;
-    pub use bracket_pathfinding::prelude::*;
     pub use bracket_random::prelude::*;
 
     pub use tiled::*;
