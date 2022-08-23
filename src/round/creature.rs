@@ -97,61 +97,37 @@ pub fn creatures_follow(
             if distance < c_follow.0 { continue } else { creature_settings::CREATURE_SPEED };
 
         // Move and rotate based on direction
-        transform.translation.x += direction.0.x * speed * TIME_STEP;
-        transform.translation.y += direction.0.y * speed * TIME_STEP;
-        transform.rotation = Quat::from_rotation_z(-direction.0.x.atan2(direction.0.y));
-
-        // Clamp to map bounds
-        let (map_width, map_height) = (map_settings.width, map_settings.height);
-        transform.translation.x = transform.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
-        transform.translation.y =
-            transform.translation.y.clamp(-map_height / 2.0, map_height / 2.0);
+        move_target(&mut transform, direction, speed, &map_settings);
     }
 }
 
 pub fn creatures_target(
     map_settings: Res<MapSettings>,
     mut query: Query<
-        (&mut Transform, &crate::components::Direction, &CreatureTarget),
-        (Without<Player>, With<CreatureTarget>, Without<CreatureTargeted>),
+        (&mut Transform, &crate::components::Direction),
+        (With<CreatureTarget>, Without<CreatureFollow>),
     >,
-    targeted_query: Query<(Entity, &Transform), (With<CreatureTargeted>, Without<CreatureTarget>)>,
 ) {
-    for (mut transform, direction, target) in query.iter_mut() {
-        let targeted_transform =
-            targeted_query.iter().find(|(p, _)| *p == target.target).map(|(_, t)| t).unwrap();
-        let targeted_translation = targeted_transform.translation.xy();
-
-        let distance = Vec2::distance(targeted_translation, transform.translation.xy());
-        let (acc, speed) = if distance > creature_settings::TARGET_PLAYER_MAX_DISTANCE {
-            (1.0, creature_settings::CREATURE_SPEED)
-        } else {
-            (0.0, 0.0)
-        };
-
-        let x = direction.0.x * acc * speed * TIME_STEP;
-        let y = direction.0.y * acc * speed * TIME_STEP;
-
-        if x.is_nan() || y.is_nan() {
-            continue;
-        }
-
-        // Apply movement
-        transform.translation.x += x;
-        transform.translation.y += y;
-
-        // Apply Rotation
-        let to_targeted = (targeted_translation - transform.translation.xy()).normalize();
-        let rotate_to_targeted = Quat::from_rotation_arc(Vec3::Y, to_targeted.extend(0.));
-        transform.rotation = rotate_to_targeted;
-
-        let (map_width, map_height) = (map_settings.width, map_settings.height);
-
-        // Clamp to map bounds
-        transform.translation.x = transform.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
-        transform.translation.y =
-            transform.translation.y.clamp(-map_height / 2.0, map_height / 2.0);
+    for (mut transform, direction) in &mut query {
+        move_target(&mut transform, direction, creature_settings::CREATURE_SPEED, &map_settings);
     }
+}
+
+fn move_target(
+    transform: &mut Transform,
+    direction: &crate::components::Direction,
+    speed: f32,
+    map_settings: &MapSettings,
+) {
+    // Move and rotate based on direction
+    transform.translation.x += direction.0.x * speed * TIME_STEP;
+    transform.translation.y += direction.0.y * speed * TIME_STEP;
+    transform.rotation = Quat::from_rotation_z(-direction.0.x.atan2(direction.0.y));
+
+    // Clamp to map bounds
+    let (map_width, map_height) = (map_settings.width, map_settings.height);
+    transform.translation.x = transform.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
+    transform.translation.y = transform.translation.y.clamp(-map_height / 2.0, map_height / 2.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -302,7 +278,10 @@ pub fn flocking_system(
 pub fn follow_system(
     players: Query<&Transform, With<Player>>,
     apply_force_event_handler: EventWriter<ApplyForceEvent>,
-    creatures: Query<(Entity, &Transform, &CreatureType, &CreatureFollow), Without<Player>>,
+    creatures: Query<
+        (Entity, &Transform, &CreatureType, Option<&CreatureFollow>, Option<&CreatureTarget>),
+        Without<Player>,
+    >,
 ) {
     let creature_vec = creatures.iter().collect::<Vec<_>>();
     let compute_task_pool = ComputeTaskPool::get();
@@ -318,15 +297,22 @@ pub fn follow_system(
         for chunk in creature_vec.chunks(creatures_per_thread) {
             let apply_force_event_handler = apply_force_event_handler.clone();
             scope.spawn(async move {
-                for (entity, transform, c_type, c_follow) in chunk {
+                for (entity, transform, c_type, c_follow, c_target) in chunk {
                     let position_a = transform.translation.xy();
-                    let player_position = match players.get(c_type.0.unwrap()) {
+
+                    let (target, dist) = match (c_follow, c_target) {
+                        (Some(f), None) => (c_type.0.unwrap(), f.0),
+                        (None, Some(t)) => (t.0, 1.0),
+                        _ => continue,
+                    };
+
+                    let player_position = match players.get(target) {
                         Ok(player_transform) => player_transform.translation.xy(),
                         Err(_) => continue,
                     };
 
                     let distance = position_a.distance(player_position);
-                    if distance > c_follow.0 {
+                    if distance > dist {
                         let chase_direction = (player_position - position_a).normalize();
                         apply_force_event_handler.lock().send(ApplyForceEvent(
                             *entity,

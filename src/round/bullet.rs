@@ -17,9 +17,9 @@ pub fn fire_bullets(
     textures: Res<TextureAssets>,
     mut rip: ResMut<RollbackIdProvider>,
     inputs: Res<Vec<(GameInput, InputStatus)>>,
-    mut player_query: Query<(&Transform, &Player, &mut BulletReady)>,
+    mut player_query: Query<(Entity, &Transform, &Player, &mut BulletReady)>,
 ) {
-    for (transform, player, mut bullet_ready) in player_query.iter_mut() {
+    for (player_ent, transform, player, mut bullet_ready) in player_query.iter_mut() {
         let (input, _) = inputs[player.handle];
         if is_firing(input.inp) && bullet_ready.0 {
             let movement_direction = transform.rotation * Vec3::Y;
@@ -33,6 +33,7 @@ pub fn fire_bullets(
                     ..default()
                 })
                 .insert(Bullet)
+                .insert(FiredBy(player_ent))
                 .insert(RoundEntity)
                 .insert(Rollback::new(rip.next_id()));
 

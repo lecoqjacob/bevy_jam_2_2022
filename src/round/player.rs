@@ -64,18 +64,33 @@ pub fn move_players(
 
 pub fn kill_players(
     mut commands: Commands,
+    bullet_query: Query<(Entity, &Transform, &FiredBy), With<Bullet>>,
     player_query: Query<(Entity, &Player, &Transform), (With<Player>, Without<Bullet>)>,
-    bullet_query: Query<(Entity, &Transform), With<Bullet>>,
 ) {
     for (player_ent, player, player_transform) in player_query.iter() {
-        for (bullet_ent, bullet_transform) in bullet_query.iter() {
+        for (bullet_ent, bullet_transform, fired_by) in bullet_query.iter() {
             let distance = Vec2::distance(
                 player_transform.translation.xy(),
                 bullet_transform.translation.xy(),
             );
+
             if distance < (player.size / 2.) {
-                commands.entity(player_ent).despawn_recursive();
                 commands.entity(bullet_ent).despawn_recursive();
+
+                player.active_zombies.iter().for_each(|e| {
+                    commands
+                        .entity(*e)
+                        .insert(CreatureTarget(fired_by.0))
+                        .remove::<CreatureFollow>();
+                });
+
+                let attacker = player_query.get(fired_by.0).unwrap().1;
+                attacker.active_zombies.iter().for_each(|e| {
+                    commands
+                        .entity(*e)
+                        .insert(CreatureTarget(player_ent))
+                        .remove::<CreatureFollow>();
+                });
             }
         }
     }
@@ -87,7 +102,7 @@ pub fn follow_collection(
     mut players: Query<(Entity, &mut Player, &Transform)>,
     mut creature_query: Query<
         (Entity, &mut Sprite, &Transform),
-        (With<CreatureType>, Without<CreatureFollow>),
+        (With<CreatureType>, Without<CreatureFollow>, Without<CreatureTarget>),
     >,
 ) {
     for (player_ent, mut player, transform) in &mut players {
@@ -110,65 +125,65 @@ pub fn follow_collection(
     }
 }
 
-pub fn target_collection_players(
-    mut commands: Commands,
-    rng: Res<RandomNumbers>,
-    mut players: Query<(Entity, &mut Player, &Transform)>,
-    creature_query: Query<
-        (Entity, &Transform, &CreatureType),
-        (With<CreatureFollow>, Without<CreatureTarget>),
-    >,
-) {
-    for (player_ent, mut player, transform) in &mut players {
-        for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, c)| {
-            Vec2::distance(transform.translation.xy(), t.translation.xy())
-                < player_settings::TARGET_COLLECTION_DISTANCE
-                && c.0.unwrap() != player_ent
-        }) {
-            let follow_distance = rng.range(
-                creature_settings::TARGET_PLAYER_MIN_DISTANCE,
-                creature_settings::TARGET_PLAYER_MAX_DISTANCE,
-            );
+// pub fn target_collection_players(
+//     mut commands: Commands,
+//     rng: Res<RandomNumbers>,
+//     mut players: Query<(Entity, &mut Player, &Transform)>,
+//     creature_query: Query<
+//         (Entity, &Transform, &CreatureType),
+//         (With<CreatureFollow>, Without<CreatureTarget>),
+//     >,
+// ) {
+//     for (player_ent, mut player, transform) in &mut players {
+//         for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, c)| {
+//             Vec2::distance(transform.translation.xy(), t.translation.xy())
+//                 < player_settings::TARGET_COLLECTION_DISTANCE
+//                 && c.0.unwrap() != player_ent
+//         }) {
+//             let follow_distance = rng.range(
+//                 creature_settings::TARGET_PLAYER_MIN_DISTANCE,
+//                 creature_settings::TARGET_PLAYER_MAX_DISTANCE,
+//             );
 
-            player.attacking_zombies += 1;
-            commands.entity(creature_ent).insert(CreatureTarget::new(player_ent, follow_distance));
-            commands
-                .entity(player_ent)
-                .insert(CreatureTargeted::new(creature_ent, follow_distance));
-        }
-    }
-}
+//             player.attacking_zombies += 1;
+//             commands.entity(creature_ent).insert(CreatureTarget::new(player_ent, follow_distance));
+//             commands
+//                 .entity(player_ent)
+//                 .insert(CreatureTargeted::new(creature_ent, follow_distance));
+//         }
+//     }
+// }
 
-pub fn target_collection_creatures(
-    mut commands: Commands,
-    rng: Res<RandomNumbers>,
-    target_creature_query: Query<
-        (Entity, &Transform, &CreatureType),
-        (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
-    >,
-    creature_query: Query<
-        (Entity, &Transform, &CreatureType),
-        (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
-    >,
-) {
-    for (target_creature_ent, &transform, target_type) in &target_creature_query {
-        for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, creature_type)| {
-            Vec2::distance(transform.translation.xy(), t.translation.xy())
-                < creature_settings::TARGET_COLLECTION_DISTANCE
-                && target_type.0 != creature_type.0
-        }) {
-            let follow_distance = rng.range(
-                creature_settings::TARGET_PLAYER_MIN_DISTANCE,
-                creature_settings::TARGET_PLAYER_MAX_DISTANCE,
-            );
+// pub fn target_collection_creatures(
+//     mut commands: Commands,
+//     rng: Res<RandomNumbers>,
+//     target_creature_query: Query<
+//         (Entity, &Transform, &CreatureType),
+//         (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
+//     >,
+//     creature_query: Query<
+//         (Entity, &Transform, &CreatureType),
+//         (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
+//     >,
+// ) {
+//     for (target_creature_ent, &transform, target_type) in &target_creature_query {
+//         for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, creature_type)| {
+//             Vec2::distance(transform.translation.xy(), t.translation.xy())
+//                 < creature_settings::TARGET_COLLECTION_DISTANCE
+//                 && target_type.0 != creature_type.0
+//         }) {
+//             let follow_distance = rng.range(
+//                 creature_settings::TARGET_PLAYER_MIN_DISTANCE,
+//                 creature_settings::TARGET_PLAYER_MAX_DISTANCE,
+//             );
 
-            commands
-                .entity(creature_ent)
-                .insert(CreatureTarget::new(target_creature_ent, follow_distance));
+//             commands
+//                 .entity(creature_ent)
+//                 .insert(CreatureTarget::new(target_creature_ent, follow_distance));
 
-            commands
-                .entity(target_creature_ent)
-                .insert(CreatureTargeted::new(creature_ent, follow_distance));
-        }
-    }
-}
+//             commands
+//                 .entity(target_creature_ent)
+//                 .insert(CreatureTargeted::new(creature_ent, follow_distance));
+//         }
+//     }
+// }

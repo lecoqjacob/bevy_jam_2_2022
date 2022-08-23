@@ -50,12 +50,12 @@ impl Plugin for NetworkingPlugin {
             .with_input_system(round::input)
             .register_rollback_type::<FrameCount>()
             .register_rollback_type::<Checksum>()
-            // .register_rollback_type::<Transform>()
+            .register_rollback_type::<Transform>()
             .register_rollback_type::<Sprite>()
             .register_rollback_type::<BulletReady>()
             .register_rollback_type::<crate::components::Direction>()
-            .register_rollback_type::<CreatureSize>()
-            .register_rollback_type::<CreatureType>()
+            // .register_rollback_type::<CreatureSize>()
+            // .register_rollback_type::<CreatureType>()
             .with_rollback_schedule(
                 Schedule::default()
                     .with_stage(
@@ -77,9 +77,14 @@ impl Plugin for NetworkingPlugin {
                             .with_system(follow_collection)
                             // .with_system(target_collection_players)
                             // .with_system(target_collection_creatures)
-                            .with_system(creatures_follow)
-                            // .with_system(creatures_target)
-                            .with_system(cache_grid_update_system.after(creatures_follow))
+                            .with_system_set(
+                                ConditionSet::new()
+                                    .label("creature_move")
+                                    .with_system(creatures_follow)
+                                    .with_system(creatures_target)
+                                    .into(),
+                            )
+                            .with_system(cache_grid_update_system.after("creature_move"))
                             .with_system_set(
                                 SystemSet::new()
                                     .label("force_adding")

@@ -1,10 +1,13 @@
-use crate::{impl_new, prelude::*};
+use crate::prelude::*;
 
 #[derive(Component, Reflect, Default, Debug)]
 pub struct BulletReady(pub bool);
 
-#[derive(Component, Reflect, Default)]
+#[derive(Component, Reflect)]
 pub struct Bullet;
+
+#[derive(Component, Reflect, Debug)]
+pub struct FiredBy(pub Entity);
 
 #[derive(Default, Component, Clone, Debug, PartialEq, Reflect)]
 pub struct Direction(pub Vec2);
@@ -39,18 +42,4 @@ pub struct CreatureFollow(pub f32);
 
 // Doing the targetting
 #[derive(Reflect, Component, Clone, Debug)]
-pub struct CreatureTarget {
-    pub target: Entity,
-    pub distance: f32,
-}
-
-impl_new!(CreatureTarget, target: Entity, distance: f32);
-
-// being targetted -- feel free to rename
-#[derive(Reflect, Component, Clone, Debug)]
-pub struct CreatureTargeted {
-    pub target: Entity,
-    pub distance: f32,
-}
-
-impl_new!(CreatureTargeted, target: Entity, distance: f32);
+pub struct CreatureTarget(pub Entity);

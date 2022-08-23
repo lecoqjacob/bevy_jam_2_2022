@@ -69,7 +69,6 @@ fn create_ggrs_session(commands: &mut Commands, socket: WebRtcSocket) {
     // start the GGRS session
     let sess = sess_build.start_p2p_session(socket).expect("Session could not be created.");
 
-    println!("{:?}", sess.remote_player_handles());
     commands.insert_resource(sess);
     commands.insert_resource(LocalHandles { handles });
     commands.insert_resource(SessionType::P2PSession);

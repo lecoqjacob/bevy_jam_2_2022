@@ -128,16 +128,13 @@ fn factors_system(
         .vscroll(true)
         .show(egui_context.ctx_mut(), |ui| {
             for (entity, c_type, mut c_follow, mut c_size) in &mut creatures {
-                let mut size: f32 = 10.;
                 ui.collapsing(
                     format!("Entity: ({:?}): Following: {:?}", entity, c_type.0.unwrap()),
                     |ui| {
                         ui.add(egui::Slider::new(&mut c_follow.0, 0.0..=100.0).text("Distance"));
-                        ui.add(egui::Slider::new(&mut size, 0.0..=100.0).text("Size"));
+                        ui.add(egui::Slider::new(&mut c_size.0, 0.0..=100.0).text("Size"));
                     },
                 );
-
-                c_size.0 = size
             }
         });
 }
