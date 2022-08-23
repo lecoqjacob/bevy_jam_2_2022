@@ -4,7 +4,8 @@ pub mod player_settings {
     pub const DEFAULT_ROT_SPEED: f32 = 360.;
     pub const DEFAULT_PLAYER_SIZE: f32 = 25.;
     pub const DEFAULT_MOVE_SPEED: f32 = 300.;
-    pub const COLLECTION_DISTANCE: f32 = 100.;
+    pub const FOLLOW_COLLECTION_DISTANCE: f32 = 100.;
+    pub const TARGET_COLLECTION_DISTANCE: f32 = 100.;
 }
 
 #[derive(Debug, Default, Component)]
@@ -17,6 +18,7 @@ pub struct Player {
     /// linear speed in meters per second
     pub movement_speed: f32,
     pub active_zombies: u32,
+    pub attacking_zombies: u32,
 }
 
 impl Player {
@@ -71,7 +73,7 @@ pub fn kill_players(
     }
 }
 
-pub fn collection(
+pub fn follow_collection(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
     mut players: Query<(Entity, &mut Player, &Transform)>,
@@ -83,7 +85,7 @@ pub fn collection(
     for (player_ent, mut player, transform) in &mut players {
         for (creature_ent, _) in creature_query.iter().filter(|(_, t)| {
             Vec2::distance(transform.translation.xy(), t.translation.xy())
-                < player_settings::COLLECTION_DISTANCE
+                < player_settings::FOLLOW_COLLECTION_DISTANCE
         }) {
             let follow_distance = rng.range(
                 creature_settings::FOLLOW_PLAYER_MIN_DISTANCE,
@@ -91,6 +93,73 @@ pub fn collection(
             );
             commands.entity(creature_ent).insert(CreatureFollow::new(player_ent, follow_distance));
             player.active_zombies += 1;
+        }
+    }
+}
+
+pub fn target_collection_players(
+    mut commands: Commands,
+    rng: Res<RandomNumbers>,
+    mut players: Query<(Entity, &mut Player, &Transform)>,
+    creature_query: Query<
+        (Entity, &Transform, &CreatureFollow),
+        (With<Creature>, With<CreatureFollow>, Without<CollectionRing>, Without<CreatureTarget>),
+    >,
+) {
+    for (player_ent, mut player, transform) in &mut players {
+        for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, c)| {
+            Vec2::distance(transform.translation.xy(), t.translation.xy())
+                < player_settings::TARGET_COLLECTION_DISTANCE
+                && c.target != player_ent
+        }) {
+            let follow_distance = rng.range(
+                creature_settings::TARGET_PLAYER_MIN_DISTANCE,
+                creature_settings::TARGET_PLAYER_MAX_DISTANCE,
+            );
+            commands.entity(creature_ent).insert(CreatureTarget::new(player_ent, follow_distance));
+            commands
+                .entity(player_ent)
+                .insert(CreatureTargeted::new(creature_ent, follow_distance));
+            player.attacking_zombies += 1;
+        }
+    }
+}
+
+pub fn target_collection_creatures(
+    mut commands: Commands,
+    rng: Res<RandomNumbers>,
+    target_creature_query: Query<
+        (Entity, &Transform, &CreatureFollow),
+        (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
+    >,
+    creature_query: Query<
+        (Entity, &Transform, &CreatureFollow),
+        (
+            With<Creature>,
+            With<CreatureFollow>,
+            Without<CollectionRing>,
+            Without<CreatureTarget>,
+            Without<CreatureTargeted>,
+        ),
+    >,
+) {
+    for (target_creature_ent, &transform, target_follow) in target_creature_query.iter() {
+        for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, creature_follow)| {
+            Vec2::distance(transform.translation.xy(), t.translation.xy())
+                < creature_settings::TARGET_COLLECTION_DISTANCE
+                && target_follow.target != creature_follow.target
+        }) {
+            let follow_distance = rng.range(
+                creature_settings::TARGET_PLAYER_MIN_DISTANCE,
+                creature_settings::TARGET_PLAYER_MAX_DISTANCE,
+            );
+            commands
+                .entity(creature_ent)
+                .insert(CreatureTarget::new(target_creature_ent, follow_distance));
+
+            commands
+                .entity(target_creature_ent)
+                .insert(CreatureTargeted::new(creature_ent, follow_distance));
         }
     }
 }

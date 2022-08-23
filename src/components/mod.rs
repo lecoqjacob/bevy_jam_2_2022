@@ -44,8 +44,23 @@ impl std::fmt::Display for Creature {
     }
 }
 
-// #[derive(Component, Clone, Debug)]
-// pub struct CreatureTarget(pub usize, pub Entity);
+// Doing the targetting
+#[derive(Component, Clone, Debug)]
+pub struct CreatureTarget {
+    pub target: Entity,
+    pub distance: f32,
+}
+
+impl_new!(CreatureTarget, target: Entity, distance: f32);
+
+// being targetted -- feel free to rename
+#[derive(Component, Clone, Debug)]
+pub struct CreatureTargeted {
+    pub target: Entity,
+    pub distance: f32,
+}
+
+impl_new!(CreatureTargeted, target: Entity, distance: f32);
 
 #[derive(Component, Clone, Debug)]
 pub struct CreatureFollow {

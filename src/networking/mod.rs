@@ -69,8 +69,11 @@ impl Plugin for NetworkingPlugin {
                         RollbackStages::Rollback,
                         RollbackStages::Creature,
                         SystemStage::parallel()
-                            .with_system(collection)
+                            .with_system(follow_collection)
+                            .with_system(target_collection_players)
+                            .with_system(target_collection_creatures)
                             .with_system(creatures_follow)
+                            .with_system(creatures_target)
                             .with_system(cache_grid_update_system.after(creatures_follow))
                             .with_system_set(
                                 SystemSet::new()

@@ -7,6 +7,11 @@ pub mod creature_settings {
     pub const FOLLOW_PLAYER_MIN_DISTANCE: f32 = 25.;
     pub const FOLLOW_PLAYER_MAX_DISTANCE: f32 = 50.;
 
+    pub const TARGET_PLAYER_MIN_DISTANCE: f32 = 15.;
+    pub const TARGET_PLAYER_MAX_DISTANCE: f32 = 30.;
+
+    pub const TARGET_COLLECTION_DISTANCE: f32 = 100.;
+
     pub const CREATURE_SPEED: f32 = 100.;
     pub const CREATURE_VISION: f32 = 110.;
 
@@ -39,7 +44,7 @@ pub fn creatures_follow(
     player_q: Query<(Entity, &Transform), (With<Player>, Without<Creature>)>,
     mut query: Query<
         (&mut Transform, &crate::components::Direction, &CreatureFollow),
-        Without<Player>,
+        (Without<Player>, With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
     >,
 ) {
     for (mut transform, direction, follow) in query.iter_mut() {
@@ -73,6 +78,51 @@ pub fn creatures_follow(
         let (map_width, map_height) = (map_settings.width, map_settings.height);
         // let pos_bounds = (map_height / 2.0 - 10., map_height / 2.0 - 10.);
         // let neg_bounds = (-map_height / 2.0 - 10., -map_height / 2.0 - 10.);
+
+        // Clamp to map bounds
+        transform.translation.x = transform.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
+        transform.translation.y =
+            transform.translation.y.clamp(-map_height / 2.0, map_height / 2.0);
+    }
+}
+
+pub fn creatures_target(
+    map_settings: Res<MapSettings>,
+    targeted_query: Query<(Entity, &Transform), (With<CreatureTargeted>, Without<CreatureTarget>)>,
+    mut query: Query<
+        (&mut Transform, &crate::components::Direction, &CreatureTarget),
+        (Without<Player>, With<CreatureTarget>, Without<CreatureTargeted>),
+    >,
+) {
+    for (mut transform, direction, target) in query.iter_mut() {
+        let targeted_transform =
+            targeted_query.iter().find(|(p, _)| *p == target.target).map(|(_, t)| t).unwrap();
+        let targeted_translation = targeted_transform.translation.xy();
+
+        let distance = Vec2::distance(targeted_translation, transform.translation.xy());
+        let (acc, speed) = if distance > creature_settings::TARGET_PLAYER_MAX_DISTANCE {
+            (1.0, creature_settings::CREATURE_SPEED)
+        } else {
+            (0.0, 0.0)
+        };
+
+        let x = direction.0.x * acc * speed * TIME_STEP;
+        let y = direction.0.y * acc * speed * TIME_STEP;
+
+        if x.is_nan() || y.is_nan() {
+            continue;
+        }
+
+        // Apply movement
+        transform.translation.x += x;
+        transform.translation.y += y;
+
+        // Apply Rotation
+        let to_targeted = (targeted_translation - transform.translation.xy()).normalize();
+        let rotate_to_targeted = Quat::from_rotation_arc(Vec3::Y, to_targeted.extend(0.));
+        transform.rotation = rotate_to_targeted;
+
+        let (map_width, map_height) = (map_settings.width, map_settings.height);
 
         // Clamp to map bounds
         transform.translation.x = transform.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
