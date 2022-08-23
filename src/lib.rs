@@ -53,8 +53,8 @@ pub fn app() -> App {
         fit_canvas_to_parent: true,
         title: LAUNCHER_TITLE.to_string(),
         canvas: Some("#bevy".to_string()),
-        // width: SCREEN_WIDTH as f32 * 10.0,
-        // height: SCREEN_HEIGHT as f32 * 10.0,
+        width: SCREEN_WIDTH as f32 * 10.0,
+        height: SCREEN_HEIGHT as f32 * 10.0,
         ..Default::default()
     })
     .insert_resource(ImageSettings::default_nearest())

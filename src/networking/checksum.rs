@@ -9,7 +9,10 @@ pub struct Checksum {
 }
 
 pub fn checksum_players(
-    mut query: Query<(&Transform, &mut Checksum), (With<Player>, With<Rollback>)>,
+    mut query: Query<
+        (&Transform, &mut Checksum),
+        (With<Player>, With<Rollback>, Without<CreatureType>),
+    >,
 ) {
     for (t, mut checksum) in query.iter_mut() {
         let mut bytes = Vec::with_capacity(20);

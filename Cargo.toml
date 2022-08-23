@@ -49,6 +49,7 @@ rand = "~0.8"
 # Image
 anyhow = "1.0.62"
 bevy_ecs_tilemap = "0.7.0"
+bevy_egui = "~0.15"
 image = "~0.24"
 tiled = { version = "0.9", default-features = false }
 winit = "~0.26"

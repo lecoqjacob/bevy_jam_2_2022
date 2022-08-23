@@ -35,8 +35,7 @@ pub fn spawn_zombie(
         Vec2::new(rng.rand::<f32>() * 2.0 - 1.0, rng.rand::<f32>() * 2.0 - 1.0).normalize();
 
     commands
-        .spawn()
-        .insert_bundle(SpriteBundle {
+        .spawn_bundle(SpriteBundle {
             sprite: Sprite {
                 color: Color::SEA_GREEN,
                 custom_size: Some(Vec2::new(size, size)),
@@ -81,44 +80,26 @@ pub fn apply_force_event_system(
 pub fn creatures_follow(
     map_settings: Res<MapSettings>,
     player_q: Query<(Entity, &Transform), (With<Player>, Without<CreatureType>)>,
-    mut creatures: Query<
-        (&mut Transform, &crate::components::Direction, &CreatureFollow, &CreatureType),
-        Without<Player>,
-    >,
+    mut creatures: Query<(
+        &mut Transform,
+        &crate::components::Direction,
+        &CreatureType,
+        &CreatureFollow,
+    )>,
 ) {
-    for (mut transform, direction, follow, c_type) in creatures
-        .iter_mut()
-        .filter(|(_, _, _, ct)| ct.0.is_some())
-        .map(|(t, d, cf, ct)| (t, d, cf, ct.0.unwrap()))
-    {
-        let player_transform = player_q.iter().find(|(p, _)| *p == c_type).map(|(_, t)| t).unwrap();
+    for (mut transform, direction, c_type, c_follow) in &mut creatures {
+        let player_transform =
+            player_q.iter().find(|(p, _)| *p == c_type.0.unwrap()).map(|(_, t)| t).unwrap();
         let player_translation = player_transform.translation.xy();
 
-        let distance = Vec2::distance(player_translation, transform.translation.xy());
-        let (acc, speed) = if distance > follow.0 {
-            (1.0, creature_settings::CREATURE_SPEED)
-        } else {
-            println!("Not followinG! {:?}", c_type);
-            return;
-        };
+        let distance = player_translation.distance(transform.translation.xy());
+        let speed =
+            if distance < c_follow.0 { continue } else { creature_settings::CREATURE_SPEED };
 
-        let x = direction.0.x * acc * speed * TIME_STEP;
-        let y = direction.0.y * acc * speed * TIME_STEP;
-
-        println!("{:?} {}, {}", c_type, x, y);
-
-        if x.is_nan() || y.is_nan() {
-            continue;
-        }
-
-        // Apply movement
-        transform.translation.x += x;
-        transform.translation.y += y;
-
-        // Apply Rotation
-        let to_player = (player_translation - transform.translation.xy()).normalize();
-        let rotate_to_player = Quat::from_rotation_arc(Vec3::Y, to_player.extend(0.));
-        transform.rotation = rotate_to_player;
+        // Move and rotate based on direction
+        transform.translation.x += direction.0.x * speed * TIME_STEP;
+        transform.translation.y += direction.0.y * speed * TIME_STEP;
+        transform.rotation = Quat::from_rotation_z(-direction.0.x.atan2(direction.0.y));
 
         // Clamp to map bounds
         let (map_width, map_height) = (map_settings.width, map_settings.height);
@@ -170,6 +151,29 @@ pub fn creatures_target(
         transform.translation.x = transform.translation.x.clamp(-map_width / 2.0, map_width / 2.0);
         transform.translation.y =
             transform.translation.y.clamp(-map_height / 2.0, map_height / 2.0);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Creature Utility Systems
+////////////////////////////////////////////////////////////////////////////////
+
+pub fn creature_grow(mut creatures: Query<(&mut Sprite, &CreatureSize)>) {
+    for (mut c_sprite, c_size) in &mut creatures {
+        let mut sprite_size = c_sprite.custom_size.unwrap();
+        let new_size = Vec2::new(c_size.0, c_size.0);
+        if sprite_size == new_size {
+            continue;
+        }
+
+        let diff = (sprite_size - new_size).abs();
+        if diff.x <= 1. || diff.y <= 1. {
+            c_sprite.custom_size = Some(new_size);
+            continue;
+        }
+
+        sprite_size = sprite_size.lerp(new_size, 2. * TIME_STEP);
+        c_sprite.custom_size = Some(sprite_size);
     }
 }
 
@@ -297,8 +301,8 @@ pub fn flocking_system(
 
 pub fn follow_system(
     players: Query<&Transform, With<Player>>,
-    creatures: Query<(Entity, &Transform, &CreatureType), (With<CreatureFollow>, Without<Player>)>,
     apply_force_event_handler: EventWriter<ApplyForceEvent>,
+    creatures: Query<(Entity, &Transform, &CreatureType, &CreatureFollow), Without<Player>>,
 ) {
     let creature_vec = creatures.iter().collect::<Vec<_>>();
     let compute_task_pool = ComputeTaskPool::get();
@@ -314,21 +318,22 @@ pub fn follow_system(
         for chunk in creature_vec.chunks(creatures_per_thread) {
             let apply_force_event_handler = apply_force_event_handler.clone();
             scope.spawn(async move {
-                for (entity_a, transform_a, c_type) in chunk {
-                    let id_a = *entity_a;
-                    let position_a = transform_a.translation.xy();
-
+                for (entity, transform, c_type, c_follow) in chunk {
+                    let position_a = transform.translation.xy();
                     let player_position = match players.get(c_type.0.unwrap()) {
                         Ok(player_transform) => player_transform.translation.xy(),
                         Err(_) => continue,
                     };
 
-                    let chase_direction = (player_position - position_a).normalize();
-                    apply_force_event_handler.lock().send(ApplyForceEvent(
-                        id_a,
-                        chase_direction,
-                        creature_settings::CREATURE_CHASE,
-                    ));
+                    let distance = position_a.distance(player_position);
+                    if distance > c_follow.0 {
+                        let chase_direction = (player_position - position_a).normalize();
+                        apply_force_event_handler.lock().send(ApplyForceEvent(
+                            *entity,
+                            chase_direction,
+                            creature_settings::CREATURE_CHASE,
+                        ));
+                    }
                 }
             });
         }

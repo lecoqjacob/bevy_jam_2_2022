@@ -50,14 +50,18 @@ impl Plugin for NetworkingPlugin {
             .with_input_system(round::input)
             .register_rollback_type::<FrameCount>()
             .register_rollback_type::<Checksum>()
-            .register_rollback_type::<Transform>()
+            // .register_rollback_type::<Transform>()
+            .register_rollback_type::<Sprite>()
             .register_rollback_type::<BulletReady>()
             .register_rollback_type::<crate::components::Direction>()
+            .register_rollback_type::<CreatureSize>()
+            .register_rollback_type::<CreatureType>()
             .with_rollback_schedule(
                 Schedule::default()
                     .with_stage(
                         RollbackStages::Rollback,
                         SystemStage::parallel()
+                            .with_system(creature_grow)
                             .with_system(apply_inputs.label(SystemLabels::Input))
                             .with_system(move_players.after(SystemLabels::Input))
                             .with_system(increase_frame_count)

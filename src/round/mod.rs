@@ -30,7 +30,6 @@ pub fn spawn_players(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
     settings: Res<MapSettings>,
-    textures: Res<TextureAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut rip: ResMut<RollbackIdProvider>,
     player_query: Query<Entity, With<Player>>,
@@ -51,16 +50,14 @@ pub fn spawn_players(
 
         let player_comp = Player::new(handle, *color);
         let player = commands
-            .spawn_bundle(SpriteSheetBundle {
+            .spawn_bundle(SpriteBundle {
                 transform,
-                texture_atlas: textures.tiles_atlas.clone(),
-                sprite: TextureAtlasSprite {
-                    index: 0,
+                sprite: Sprite {
                     color: *color,
                     custom_size: Some(Vec2::new(player_comp.size, player_comp.size)),
-                    ..Default::default()
+                    ..default()
                 },
-                ..Default::default()
+                ..default()
             })
             .insert(player_comp)
             .insert(PlayerControls::default())
@@ -71,16 +68,14 @@ pub fn spawn_players(
             .id();
 
         commands.entity(player).add_children(|p| {
-            p.spawn_bundle(SpriteSheetBundle {
+            p.spawn_bundle(SpriteBundle {
                 transform: transform.with_translation(Vec3::new(0., 10., 5.)),
-                texture_atlas: textures.tiles_atlas.clone(),
-                sprite: TextureAtlasSprite {
-                    index: 3,
-                    color: *color,
+                sprite: Sprite {
+                    color: Color::BLACK,
                     custom_size: Some(Vec2::new(5., 15.)),
-                    ..Default::default()
+                    ..default()
                 },
-                ..Default::default()
+                ..default()
             })
             .insert(RoundEntity);
 
