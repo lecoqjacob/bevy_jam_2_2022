@@ -83,8 +83,6 @@ pub fn spawning(
     mut rip: ResMut<RollbackIdProvider>,
 ) {
     for SpawnEvent { point, handle: _, color: _, spawn_type } in evs.iter() {
-        println!("Spawning {:?}", spawn_type);
-
         match spawn_type {
             RespawnType::Zombie => {
                 let direction_vector =
@@ -152,9 +150,8 @@ pub fn print_p2p_events(mut session: ResMut<P2PSession<GGRSConfig>>) {
 
 pub fn check_win(mut commands: Commands, player: Query<&Player, Changed<Player>>) {
     for p in player.iter() {
-        println!("Checking win {:?}...", p);
         let count = p.active_zombies.len();
-        if count >= 5 {
+        if count >= 25 {
             commands.insert_resource(NextState(AppState::Win));
             commands.insert_resource(MatchData { result: format!("Player {:?} won!", p.handle) });
         }

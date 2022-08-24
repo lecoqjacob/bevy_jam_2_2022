@@ -6,7 +6,7 @@ pub mod player_settings {
 
     pub const DEFAULT_ROT_SPEED: f32 = 360.;
     pub const DEFAULT_PLAYER_SIZE: f32 = 25.;
-    pub const DEFAULT_MOVE_SPEED: f32 = 300.;
+    pub const DEFAULT_MOVE_SPEED: f32 = 200.;
 
     pub const FOLLOW_COLLECTION_DISTANCE: f32 = 100.;
     pub const TARGET_COLLECTION_DISTANCE: f32 = 100.;
@@ -50,8 +50,6 @@ pub fn spawn_player(
     ring_mesh: Handle<Mesh>,
     color_mat: Handle<ColorMaterial>,
 ) {
-    println!("spawn_player: handle={}, color={:?}", handle, color);
-    println!("color={:?}", get_color_name(color));
     let player_comp = Player::new(handle, color);
     let player = commands
         .spawn_bundle(SpriteBundle {
@@ -68,6 +66,7 @@ pub fn spawn_player(
         .insert(Checksum::default())
         .insert(Rollback::new(rip.next_id()))
         .insert(BulletReady(true))
+        .insert(Health(10))
         .insert(RoundEntity)
         .id();
 
@@ -117,28 +116,42 @@ pub fn move_players(
 pub fn kill_players(
     mut commands: Commands,
     bullet_query: Query<(Entity, &Transform, &FiredBy), With<Bullet>>,
-    player_query: Query<(Entity, &Player, &Transform), (With<Player>, Without<Bullet>)>,
+    mut player_query: Query<
+        (Entity, &Player, &Transform, &mut Health),
+        (With<Player>, Without<Bullet>),
+    >,
 ) {
-    for (player_ent, target_player, player_transform) in player_query.iter() {
-        for (bullet_ent, bullet_transform, _fired_by) in bullet_query.iter() {
+    for (player_ent, target_player, player_transform, mut p_health) in player_query.iter_mut() {
+        for (bullet_ent, bullet_transform, fired_by) in bullet_query.iter() {
             let distance = Vec2::distance(
                 player_transform.translation.xy(),
                 bullet_transform.translation.xy(),
             );
 
             if distance < (target_player.size / 2.) {
-                target_player.active_zombies.iter().for_each(|e| {
-                    commands.entity(*e).remove::<CreatureFollow>();
-                });
-
-                commands.spawn().insert(Respawn {
-                    time: 3.,
-                    handle: target_player.handle,
-                    color: target_player.color,
-                });
-
                 commands.entity(bullet_ent).despawn_recursive();
-                commands.entity(player_ent).despawn_recursive();
+
+                p_health.0 -= 1;
+                if p_health.0 <= 0 {
+                    target_player.active_zombies.iter().for_each(|e| {
+                        commands.entity(*e).remove::<CreatureFollow>().remove::<CreatureTarget>();
+                    });
+
+                    commands.spawn().insert(Respawn {
+                        time: 3.,
+                        handle: target_player.handle,
+                        color: target_player.color,
+                    });
+
+                    commands.entity(player_ent).despawn_recursive();
+                } else {
+                    target_player.active_zombies.iter().for_each(|e| {
+                        commands
+                            .entity(*e)
+                            // .remove::<CreatureFollow>()
+                            .insert(CreatureTarget(fired_by.0));
+                    });
+                }
             }
         }
     }
@@ -155,7 +168,6 @@ pub fn respawn_players(
         respawn.time -= TIME_STEP;
 
         if respawn.time <= 0.0 {
-            println!("respawning player {}", respawn.handle);
             commands.entity(ent).despawn_recursive();
 
             let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));

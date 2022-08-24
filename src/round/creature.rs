@@ -12,7 +12,7 @@ pub mod creature_settings {
 
     pub const TARGET_COLLECTION_DISTANCE: f32 = 100.;
 
-    pub const CREATURE_SPEED: f32 = 300.;
+    pub const CREATURE_SPEED: f32 = 210.;
     pub const CREATURE_VISION: f32 = 110.;
     pub const DEFAULT_CREATURE_SIZE: (f32, f32) = (10., 15.); // (min, max)
 
@@ -21,6 +21,8 @@ pub mod creature_settings {
     pub const CREATURE_SEPERATION: f32 = 3.;
     pub const CREATURE_ALIGNMENT: f32 = 15.;
     pub const CREATURE_CHASE: f32 = 15.;
+
+    pub const CREATURE_ATTACK_COOLDOWN: f32 = 1.;
 }
 
 pub fn spawn_zombie(
@@ -44,6 +46,7 @@ pub fn spawn_zombie(
         .insert(CreatureType::default())
         .insert(CreatureSize(size))
         .insert(Rollback::new(rip.next_id()))
+        .insert(Health(2))
         .insert(RoundEntity)
         .id()
 }
@@ -70,12 +73,10 @@ pub fn apply_force_event_system(
 pub fn creatures_follow(
     map_settings: Res<MapSettings>,
     player_q: Query<(Entity, &Transform), (With<Player>, Without<CreatureType>)>,
-    mut creatures: Query<(
-        &mut Transform,
-        &crate::components::Direction,
-        &CreatureType,
-        &CreatureFollow,
-    )>,
+    mut creatures: Query<
+        (&mut Transform, &crate::components::Direction, &CreatureType, &CreatureFollow),
+        Without<CreatureTarget>,
+    >,
 ) {
     for (mut transform, direction, c_type, c_follow) in &mut creatures {
         if let Some(player_transform) =
@@ -94,14 +95,65 @@ pub fn creatures_follow(
 }
 
 pub fn creatures_target(
+    mut commands: Commands,
+    mut player_entity: Local<Option<Entity>>,
+    mut attack_timer: Local<f32>,
     map_settings: Res<MapSettings>,
+    mut player_q: Query<
+        (Entity, &Transform, &Player, &mut Health),
+        (With<Player>, Without<CreatureType>),
+    >,
     mut query: Query<
-        (&mut Transform, &crate::components::Direction),
-        (With<CreatureTarget>, Without<CreatureFollow>),
+        (Entity, &mut Transform, &crate::components::Direction, &CreatureTarget),
+        (With<CreatureTarget>, Without<Player>),
     >,
 ) {
-    for (mut transform, direction) in &mut query {
-        move_target(&mut transform, direction, creature_settings::CREATURE_SPEED, &map_settings);
+    if query.iter().len() > 0 {
+        let can_attack = *attack_timer > creature_settings::CREATURE_ATTACK_COOLDOWN;
+        *attack_timer += TIME_STEP;
+
+        for (creature, mut transform, direction, target) in &mut query {
+            if let Some((p_entity, p_transform, player, mut health)) =
+                player_q.iter_mut().find(|(p, _, _, _)| *p == target.0)
+            {
+                let player_translation = p_transform.translation.xy();
+                let distance = player_translation.distance(transform.translation.xy());
+
+                if distance < player.size + 10. && can_attack {
+                    health.0 -= 1;
+                    if health.0 <= 0 {
+                        player.active_zombies.iter().for_each(|e| {
+                            commands
+                                .entity(*e)
+                                .remove::<CreatureFollow>()
+                                .remove::<CreatureTarget>();
+                        });
+
+                        commands.spawn().insert(Respawn {
+                            time: 3.,
+                            handle: player.handle,
+                            color: player.color,
+                        });
+
+                        commands.entity(creature).remove::<CreatureTarget>();
+                        *player_entity = Some(p_entity);
+                    }
+                } else {
+                    move_target(
+                        &mut transform,
+                        direction,
+                        creature_settings::CREATURE_SPEED,
+                        &map_settings,
+                    );
+                };
+            }
+        }
+    } else {
+        *attack_timer = 0.0;
+        if let Some(e) = *player_entity {
+            commands.entity(e).despawn_recursive();
+            *player_entity = None;
+        }
     }
 }
 
@@ -142,6 +194,44 @@ pub fn creature_grow(mut creatures: Query<(&mut Sprite, &CreatureSize)>) {
 
         sprite_size = sprite_size.lerp(new_size, 2. * TIME_STEP);
         c_sprite.custom_size = Some(sprite_size);
+    }
+}
+
+pub fn kill_creatures(
+    mut commands: Commands,
+    mut players: Query<(Entity, &mut Player)>,
+    bullet_query: Query<(Entity, &Transform, &FiredBy), With<Bullet>>,
+    mut creatures: Query<
+        (Entity, &CreatureType, &CreatureSize, &Transform, &mut Health),
+        (Without<Bullet>, Or<(With<CreatureFollow>, With<CreatureTarget>)>),
+    >,
+) {
+    for (entity, c_type, c_size, c_transform, mut c_health) in creatures.iter_mut() {
+        for (bullet_ent, bullet_transform, fired_by) in bullet_query.iter() {
+            let distance =
+                Vec2::distance(c_transform.translation.xy(), bullet_transform.translation.xy());
+
+            if distance < (c_size.0 / 2.) {
+                let attacker = players.get_mut(fired_by.0).unwrap().0;
+                if c_type.0 != Some(attacker) {
+                    commands.entity(bullet_ent).despawn_recursive();
+                    c_health.0 -= 1;
+
+                    if c_health.0 <= 0 {
+                        commands.entity(entity).despawn_recursive();
+
+                        if let Some(player_ent) = c_type.0 {
+                            let mut player = players.get_mut(player_ent).unwrap().1;
+                            if let Some(index) =
+                                player.active_zombies.iter().position(|e| *e == entity)
+                            {
+                                player.active_zombies.remove(index);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -292,10 +382,12 @@ pub fn follow_system(
                 for (entity, transform, c_type, c_follow, c_target) in chunk {
                     let position_a = transform.translation.xy();
 
-                    let (target, dist) = match (c_follow, c_target) {
-                        (Some(f), None) => (c_type.0.unwrap(), f.0),
-                        (None, Some(t)) => (t.0, 1.0),
-                        _ => continue,
+                    let (target, dist) = if let Some(t) = c_target {
+                        (t.0, 1.0)
+                    } else if let Some(f) = c_follow {
+                        (c_type.0.unwrap(), f.0)
+                    } else {
+                        continue;
                     };
 
                     let player_position = match players.get(target) {

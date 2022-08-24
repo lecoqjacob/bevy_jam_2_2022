@@ -56,7 +56,6 @@ impl Plugin for NetworkingPlugin {
             .register_rollback_type::<crate::components::Direction>()
             .register_rollback_type::<Health>()
             .register_rollback_type::<Player>()
-            // .register_rollback_type::<CreatureType>()
             .with_rollback_schedule(
                 Schedule::default()
                     .with_stage(
@@ -76,6 +75,7 @@ impl Plugin for NetworkingPlugin {
                             .with_system(fire_bullets.after(move_players).after(reload_bullet)) // .with_system(move_bullet),
                             .with_system(move_bullet)
                             .with_system(kill_players.after(move_bullet).after(move_players))
+                            .with_system(kill_creatures.after(move_bullet).after(move_players))
                             .with_system(respawn_players.after(kill_players))
                             // Utility Systems
                             .with_system(
