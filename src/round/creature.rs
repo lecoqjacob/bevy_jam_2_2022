@@ -88,16 +88,19 @@ pub fn creatures_follow(
     )>,
 ) {
     for (mut transform, direction, c_type, c_follow) in &mut creatures {
-        let player_transform =
-            player_q.iter().find(|(p, _)| *p == c_type.0.unwrap()).map(|(_, t)| t).unwrap();
-        let player_translation = player_transform.translation.xy();
+        println!("{:?}", c_type);
+        if let Some(player_transform) =
+            player_q.iter().find(|(p, _)| *p == c_type.0.unwrap()).map(|(_, t)| t)
+        {
+            let player_translation = player_transform.translation.xy();
 
-        let distance = player_translation.distance(transform.translation.xy());
-        let speed =
-            if distance < c_follow.0 { continue } else { creature_settings::CREATURE_SPEED };
+            let distance = player_translation.distance(transform.translation.xy());
+            let speed =
+                if distance < c_follow.0 { continue } else { creature_settings::CREATURE_SPEED };
 
-        // Move and rotate based on direction
-        move_target(&mut transform, direction, speed, &map_settings);
+            // Move and rotate based on direction
+            move_target(&mut transform, direction, speed, &map_settings);
+        }
     }
 }
 

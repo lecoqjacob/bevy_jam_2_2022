@@ -30,11 +30,11 @@ pub fn spawn_players(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
     settings: Res<MapSettings>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    meshes: Res<MeshAssets>,
+    materials: Res<MaterialAssets>,
     mut rip: ResMut<RollbackIdProvider>,
     player_query: Query<Entity, With<Player>>,
     bullet_query: Query<Entity, With<Bullet>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     info!("Spawning players");
 
@@ -48,50 +48,15 @@ pub fn spawn_players(
     for (handle, color) in player_settings::PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
         let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
 
-        let player_comp = Player::new(handle, *color);
-        let player = commands
-            .spawn_bundle(SpriteBundle {
-                transform,
-                sprite: Sprite {
-                    color: *color,
-                    custom_size: Some(Vec2::new(player_comp.size, player_comp.size)),
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(player_comp)
-            .insert(PlayerControls::default())
-            .insert(Checksum::default())
-            .insert(Rollback::new(rip.next_id()))
-            .insert(BulletReady(true))
-            .insert(RoundEntity)
-            .id();
-
-        commands.entity(player).add_children(|p| {
-            p.spawn_bundle(SpriteBundle {
-                transform: transform.with_translation(Vec3::new(0., 10., 5.)),
-                sprite: Sprite {
-                    color: Color::BLACK,
-                    custom_size: Some(Vec2::new(5., 15.)),
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(RoundEntity);
-
-            p.spawn_bundle(MaterialMesh2dBundle {
-                transform,
-                mesh: meshes.add(shape::Circle::new(100.).into()).into(),
-                material: materials.add(ColorMaterial::from(Color::rgba(
-                    color.r(),
-                    color.g(),
-                    color.b(),
-                    0.2,
-                ))),
-                ..default()
-            })
-            .insert(RoundEntity);
-        });
+        spawn_player(
+            &mut commands,
+            &mut rip,
+            transform,
+            handle,
+            *color,
+            meshes.ring.clone(),
+            materials.get(*color),
+        );
     }
 
     for _ in 0..20 {
@@ -100,13 +65,37 @@ pub fn spawn_players(
         let x = rng.range(-map_width, map_width);
         let y = rng.range(-map_height, map_height);
 
-        // let size = rng.range(
-        //     creature_settings::DEFAULT_CREATURE_SIZE.0,
-        //     creature_settings::DEFAULT_CREATURE_SIZE.1,
-        // );
-
         let size = creature_settings::DEFAULT_CREATURE_SIZE.0;
         spawn_zombie(&mut commands, &mut rip, &rng, x, y, size);
+    }
+}
+
+pub fn respawn_players(
+    time: Res<Time>,
+    mut commands: Commands,
+    meshes: Res<MeshAssets>,
+    materials: Res<MaterialAssets>,
+    mut rip: ResMut<RollbackIdProvider>,
+    mut respawns: Query<(Entity, &mut Respawn)>,
+) {
+    for (ent, mut respawn) in &mut respawns {
+        respawn.time -= time.delta_seconds();
+
+        if respawn.time <= 0.0 {
+            commands.entity(ent).despawn_recursive();
+
+            let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
+
+            spawn_player(
+                &mut commands,
+                &mut rip,
+                transform,
+                respawn.handle,
+                respawn.color,
+                meshes.ring.clone(),
+                materials.get(respawn.color),
+            );
+        }
     }
 }
 
@@ -117,12 +106,12 @@ pub fn print_p2p_events(mut session: ResMut<P2PSession<GGRSConfig>>) {
 }
 
 pub fn check_win(mut commands: Commands, player: Query<&Player>) {
-    let players = player.iter().count();
+    // let players = player.iter().count();
 
-    if players < NUM_PLAYERS {
-        commands.insert_resource(NextState(AppState::Win));
-        commands.insert_resource(MatchData { result: "Orange won!".to_owned() });
-    }
+    // if players < NUM_PLAYERS {
+    //     commands.insert_resource(NextState(AppState::Win));
+    //     commands.insert_resource(MatchData { result: "Orange won!".to_owned() });
+    // }
 }
 
 pub fn cleanup_round(mut commands: Commands) {

@@ -32,10 +32,59 @@ pub struct FontAssets {
     pub fira_sans: Handle<Font>,
 }
 
+pub struct MeshAssets {
+    pub ring: Handle<Mesh>,
+}
+
+pub struct MaterialAssets {
+    pub transparent_blue: Handle<ColorMaterial>,
+    pub transparent_green: Handle<ColorMaterial>,
+    pub transparent_orange: Handle<ColorMaterial>,
+    pub transparent_magenta: Handle<ColorMaterial>,
+}
+
+impl MaterialAssets {
+    pub fn get(&self, color: Color) -> Handle<ColorMaterial> {
+        if color == BLUE {
+            self.transparent_blue.clone()
+        } else if color == GREEN {
+            self.transparent_green.clone()
+        } else if color == ORANGE {
+            self.transparent_orange.clone()
+        } else {
+            self.transparent_magenta.clone()
+        }
+    }
+}
+
 #[derive(Component)]
 pub struct LoadingMenu;
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let ring_mesh = meshes.add(shape::Circle::new(100.).into());
+    commands.insert_resource(MeshAssets { ring: ring_mesh });
+
+    let transparent_blue =
+        materials.add(ColorMaterial::from(Color::rgba(BLUE.r(), BLUE.g(), BLUE.b(), 0.2)));
+    let transparent_green =
+        materials.add(ColorMaterial::from(Color::rgba(GREEN.r(), GREEN.g(), GREEN.b(), 0.2)));
+    let transparent_orange =
+        materials.add(ColorMaterial::from(Color::rgba(ORANGE.r(), ORANGE.g(), ORANGE.b(), 0.2)));
+    let transparent_magenta =
+        materials.add(ColorMaterial::from(Color::rgba(MAGENTA.r(), MAGENTA.g(), MAGENTA.b(), 0.2)));
+
+    commands.insert_resource(MaterialAssets {
+        transparent_blue,
+        transparent_green,
+        transparent_orange,
+        transparent_magenta,
+    });
+
     // Loading Menu
     commands
         .spawn_bundle(NodeBundle {

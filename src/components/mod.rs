@@ -43,3 +43,13 @@ pub struct CreatureFollow(pub f32);
 // Doing the targetting
 #[derive(Reflect, Component, Clone, Debug)]
 pub struct CreatureTarget(pub Entity);
+
+#[derive(Default, Reflect, Component, Clone, Debug)]
+pub struct Health(pub i32);
+
+#[derive(Default, Reflect, Component, Clone, Debug)]
+pub struct Respawn {
+    pub time: f32,
+    pub handle: usize,
+    pub color: Color,
+}

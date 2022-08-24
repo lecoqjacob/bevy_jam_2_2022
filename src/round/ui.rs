@@ -6,6 +6,9 @@ use bevy_egui::{egui, EguiContext, EguiPlugin};
 #[derive(Component)]
 pub struct ZombieText;
 
+#[derive(Component)]
+pub struct RespawnText;
+
 pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
     commands
         .spawn_bundle(
@@ -31,6 +34,49 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
             .with_style(Style { align_self: AlignSelf::FlexEnd, ..default() }),
         )
         .insert(ZombieText)
+        .insert(RoundEntity);
+
+    commands
+        .spawn_bundle(
+            // Create a TextBundle that has a Text with a list of sections.
+            TextBundle::from_sections([
+                TextSection::new(
+                    "Respawning in ",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+                TextSection::new(
+                    "0",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::GOLD,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+                TextSection::new(
+                    " seconds",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+            ])
+            .with_style(Style {
+                position_type: PositionType::Absolute,
+                position: UiRect {
+                    bottom: Val::Percent(50.),
+                    left: Val::Percent(35.),
+                    ..Default::default()
+                },
+                align_content: AlignContent::Center,
+                ..default()
+            }),
+        )
+        .insert(RespawnText)
         .insert(RoundEntity);
 }
 
@@ -114,6 +160,33 @@ fn fps_text_update_system(
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Respawn
+////////////////////////////////////////////////////////////////////////////////
+
+fn update_respawn_text(
+    local_handles: Res<LocalHandles>,
+    respawns: Query<&Respawn>,
+    mut query: Query<&mut Text, With<RespawnText>>,
+) {
+    let handle = local_handles.handles[0];
+    if let Some(r) = respawns.iter().find(|r| r.handle == handle) {
+        for mut text in query.iter_mut() {
+            text.sections.iter_mut().for_each(|section| {
+                section.style.color.set_a(1.0);
+            });
+
+            text.sections[1].value = format!("{:.00}", r.time);
+        }
+    } else {
+        for mut text in query.iter_mut() {
+            text.sections.iter_mut().for_each(|section| {
+                section.style.color.set_a(0.0);
+            });
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // EGUI
 ////////////////////////////////////////////////////////////////////////////////
 fn factors_system(
@@ -139,8 +212,6 @@ fn factors_system(
         });
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
 pub struct RoundUIPlugin;
 impl Plugin for RoundUIPlugin {
     fn build(&self, app: &mut App) {
@@ -161,6 +232,7 @@ impl Plugin for RoundUIPlugin {
                 .with_system(update_round_text)
                 .with_system(fps_text_update_system)
                 .with_system(factors_system)
+                .with_system(update_respawn_text)
                 .into(),
         );
         app.add_system_set(
@@ -169,6 +241,7 @@ impl Plugin for RoundUIPlugin {
                 .with_system(update_round_text)
                 .with_system(fps_text_update_system)
                 .with_system(factors_system)
+                .with_system(update_respawn_text)
                 .into(),
         );
     }
