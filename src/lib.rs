@@ -3,6 +3,7 @@
 
 mod camera;
 mod components;
+mod events;
 mod loading;
 mod map;
 mod menu;
@@ -28,6 +29,7 @@ mod prelude {
 
     pub use crate::camera::*;
     pub use crate::components::*;
+    pub use crate::events::*;
     pub use crate::loading::*;
     pub use crate::map::*;
     pub use crate::menu::*;

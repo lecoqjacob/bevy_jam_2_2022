@@ -26,24 +26,16 @@ pub mod creature_settings {
 pub fn spawn_zombie(
     commands: &mut Commands,
     rip: &mut RollbackIdProvider,
-    rng: &RandomNumbers,
-    x: f32,
-    y: f32,
+    transform: Transform,
+    direction_vector: Vec2,
     size: f32,
 ) -> Entity {
-    let direction_vector =
-        Vec2::new(rng.rand::<f32>() * 2.0 - 1.0, rng.rand::<f32>() * 2.0 - 1.0).normalize();
-
     commands
         .spawn_bundle(SpriteBundle {
+            transform,
             sprite: Sprite {
                 color: Color::SEA_GREEN,
                 custom_size: Some(Vec2::new(size, size)),
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(x, y, 5.0),
-                rotation: Quat::from_rotation_z(-direction_vector.x.atan2(direction_vector.y)),
                 ..default()
             },
             ..default()
@@ -55,8 +47,6 @@ pub fn spawn_zombie(
         .insert(RoundEntity)
         .id()
 }
-
-pub struct ApplyForceEvent(pub Entity, pub Vec2, pub f32);
 
 pub fn apply_force_event_system(
     mut apply_force_event_handler: EventReader<ApplyForceEvent>,
@@ -88,7 +78,6 @@ pub fn creatures_follow(
     )>,
 ) {
     for (mut transform, direction, c_type, c_follow) in &mut creatures {
-        println!("{:?}", c_type);
         if let Some(player_transform) =
             player_q.iter().find(|(p, _)| *p == c_type.0.unwrap()).map(|(_, t)| t)
         {

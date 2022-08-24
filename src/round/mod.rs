@@ -21,22 +21,18 @@ pub use ui::*;
 #[derive(Component)]
 pub struct RoundEntity;
 
-pub fn setup_round(mut commands: Commands) {
-    commands.init_resource::<FrameCount>();
-    commands.init_resource::<CacheGrid>();
-}
-
-pub fn spawn_players(
+pub fn setup_round(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
-    settings: Res<MapSettings>,
     meshes: Res<MeshAssets>,
+    settings: Res<MapSettings>,
     materials: Res<MaterialAssets>,
     mut rip: ResMut<RollbackIdProvider>,
     player_query: Query<Entity, With<Player>>,
     bullet_query: Query<Entity, With<Bullet>>,
 ) {
-    info!("Spawning players");
+    commands.init_resource::<FrameCount>();
+    commands.init_resource::<CacheGrid>();
 
     for player in player_query.iter() {
         commands.entity(player).despawn_recursive();
@@ -45,9 +41,8 @@ pub fn spawn_players(
         commands.entity(bullet).despawn_recursive();
     }
 
+    let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
     for (handle, color) in player_settings::PLAYER_COLORS.iter().enumerate().take(NUM_PLAYERS) {
-        let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
-
         spawn_player(
             &mut commands,
             &mut rip,
@@ -59,42 +54,92 @@ pub fn spawn_players(
         );
     }
 
-    for _ in 0..20 {
-        let map_width = settings.width / 2.;
-        let map_height = settings.height / 2.;
-        let x = rng.range(-map_width, map_width);
-        let y = rng.range(-map_height, map_height);
+    for _ in 0..50 {
+        let (x, y) = random_map_point(settings.width, settings.height, &rng);
+        let direction_vector =
+            Vec2::new(rng.rand::<f32>() * 2.0 - 1.0, rng.rand::<f32>() * 2.0 - 1.0).normalize();
+        let transform = Transform::default()
+            .with_translation(Vec3::new(x, y, 10.0))
+            .with_rotation(Quat::from_rotation_z(-direction_vector.x.atan2(direction_vector.y)));
 
         let size = creature_settings::DEFAULT_CREATURE_SIZE.0;
-        spawn_zombie(&mut commands, &mut rip, &rng, x, y, size);
+        spawn_zombie(&mut commands, &mut rip, transform, direction_vector, size);
     }
 }
 
-pub fn respawn_players(
-    time: Res<Time>,
+pub fn random_map_point(width: f32, height: f32, rng: &RandomNumbers) -> (f32, f32) {
+    let map_width = width / 2.;
+    let map_height = height / 2.;
+    let x = rng.range(-map_width, map_width);
+    let y = rng.range(-map_height, map_height);
+
+    (x, y)
+}
+
+pub fn spawning(
     mut commands: Commands,
-    meshes: Res<MeshAssets>,
-    materials: Res<MaterialAssets>,
+    rng: Res<RandomNumbers>,
+    mut evs: EventReader<SpawnEvent>,
     mut rip: ResMut<RollbackIdProvider>,
-    mut respawns: Query<(Entity, &mut Respawn)>,
 ) {
-    for (ent, mut respawn) in &mut respawns {
-        respawn.time -= time.delta_seconds();
+    for SpawnEvent { point, handle: _, color: _, spawn_type } in evs.iter() {
+        println!("Spawning {:?}", spawn_type);
 
-        if respawn.time <= 0.0 {
-            commands.entity(ent).despawn_recursive();
+        match spawn_type {
+            RespawnType::Zombie => {
+                let direction_vector =
+                    Vec2::new(rng.rand::<f32>() * 2.0 - 1.0, rng.rand::<f32>() * 2.0 - 1.0)
+                        .normalize();
 
-            let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
+                let point = point.unwrap();
+                let transform = Transform::default()
+                    .with_translation(Vec3::new(point.0, point.1, 10.0))
+                    .with_rotation(Quat::from_rotation_z(
+                        -direction_vector.x.atan2(direction_vector.y),
+                    ));
 
-            spawn_player(
-                &mut commands,
-                &mut rip,
-                transform,
-                respawn.handle,
-                respawn.color,
-                meshes.ring.clone(),
-                materials.get(respawn.color),
-            );
+                let size = creature_settings::DEFAULT_CREATURE_SIZE.0;
+                spawn_zombie(&mut commands, &mut rip, transform, direction_vector, size);
+            }
+            // RespawnType::Player => {
+            //     let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
+            //     let (handle, color) = (handle.unwrap(), color.unwrap());
+            //     spawn_player(
+            //         &mut commands,
+            //         &mut rip,
+            //         transform,
+            //         handle,
+            //         color,
+            //         meshes.ring.clone(),
+            //         materials.get(color),
+            //     );
+            // }
+            _ => info!("Player Spawning not supported: {:?}", spawn_type),
+        }
+    }
+}
+
+pub fn spawn_creatures(
+    mut timer: Local<f32>,
+    rng: Res<RandomNumbers>,
+    settings: Res<MapSettings>,
+    mut spawn_event: EventWriter<SpawnEvent>,
+    total_creature_follow: Query<&CreatureFollow>,
+) {
+    let count = total_creature_follow.iter().count();
+    if count < 100 {
+        *timer += TIME_STEP;
+
+        if *timer >= 15. {
+            *timer = 0.0;
+
+            let point = random_map_point(settings.width, settings.height, &rng);
+            spawn_event.send(SpawnEvent {
+                color: None,
+                handle: None,
+                point: Some(point),
+                spawn_type: RespawnType::Zombie,
+            });
         }
     }
 }
@@ -105,13 +150,15 @@ pub fn print_p2p_events(mut session: ResMut<P2PSession<GGRSConfig>>) {
     }
 }
 
-pub fn check_win(mut commands: Commands, player: Query<&Player>) {
-    // let players = player.iter().count();
-
-    // if players < NUM_PLAYERS {
-    //     commands.insert_resource(NextState(AppState::Win));
-    //     commands.insert_resource(MatchData { result: "Orange won!".to_owned() });
-    // }
+pub fn check_win(mut commands: Commands, player: Query<&Player, Changed<Player>>) {
+    for p in player.iter() {
+        println!("Checking win {:?}...", p);
+        let count = p.active_zombies.len();
+        if count >= 5 {
+            commands.insert_resource(NextState(AppState::Win));
+            commands.insert_resource(MatchData { result: format!("Player {:?} won!", p.handle) });
+        }
+    }
 }
 
 pub fn cleanup_round(mut commands: Commands) {
@@ -125,15 +172,19 @@ pub fn cleanup_round(mut commands: Commands) {
 pub struct RoundPlugin;
 impl Plugin for RoundPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(RoundUIPlugin);
         app.add_event::<ApplyForceEvent>();
+        app.add_event::<SpawnEvent>();
+
+        app.add_plugin(RoundUIPlugin);
 
         // Local
         app.add_enter_system_set(
             AppState::RoundLocal,
-            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
+            ConditionSet::new().with_system(setup_round).into(),
         )
-        .add_system(check_win.run_in_state(AppState::RoundLocal))
+        .add_system_set(
+            ConditionSet::new().run_in_state(AppState::RoundLocal).with_system(check_win).into(),
+        )
         .add_exit_system_set(
             AppState::RoundLocal,
             ConditionSet::new()
@@ -145,7 +196,7 @@ impl Plugin for RoundPlugin {
         // online round
         app.add_enter_system_set(
             AppState::RoundOnline,
-            ConditionSet::new().with_system(setup_round).with_system(spawn_players).into(),
+            ConditionSet::new().with_system(setup_round).into(),
         )
         .add_system_set(
             ConditionSet::new()

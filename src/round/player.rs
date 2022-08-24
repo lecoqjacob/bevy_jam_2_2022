@@ -50,6 +50,8 @@ pub fn spawn_player(
     ring_mesh: Handle<Mesh>,
     color_mat: Handle<ColorMaterial>,
 ) {
+    println!("spawn_player: handle={}, color={:?}", handle, color);
+    println!("color={:?}", get_color_name(color));
     let player_comp = Player::new(handle, color);
     let player = commands
         .spawn_bundle(SpriteBundle {
@@ -118,18 +120,15 @@ pub fn kill_players(
     player_query: Query<(Entity, &Player, &Transform), (With<Player>, Without<Bullet>)>,
 ) {
     for (player_ent, target_player, player_transform) in player_query.iter() {
-        for (bullet_ent, bullet_transform, fired_by) in bullet_query.iter() {
+        for (bullet_ent, bullet_transform, _fired_by) in bullet_query.iter() {
             let distance = Vec2::distance(
                 player_transform.translation.xy(),
                 bullet_transform.translation.xy(),
             );
 
             if distance < (target_player.size / 2.) {
-                commands.entity(bullet_ent).despawn_recursive();
-
-                let attacker = player_query.get(fired_by.0).unwrap().1;
-                attacker.active_zombies.iter().for_each(|e| {
-                    commands.entity(*e).insert(CreatureType(None));
+                target_player.active_zombies.iter().for_each(|e| {
+                    commands.entity(*e).remove::<CreatureFollow>();
                 });
 
                 commands.spawn().insert(Respawn {
@@ -137,11 +136,45 @@ pub fn kill_players(
                     handle: target_player.handle,
                     color: target_player.color,
                 });
+
+                commands.entity(bullet_ent).despawn_recursive();
                 commands.entity(player_ent).despawn_recursive();
             }
         }
     }
 }
+
+pub fn respawn_players(
+    mut commands: Commands,
+    meshes: Res<MeshAssets>,
+    materials: Res<MaterialAssets>,
+    mut rip: ResMut<RollbackIdProvider>,
+    mut respawns: Query<(Entity, &mut Respawn)>,
+) {
+    for (ent, mut respawn) in &mut respawns {
+        respawn.time -= TIME_STEP;
+
+        if respawn.time <= 0.0 {
+            println!("respawning player {}", respawn.handle);
+            commands.entity(ent).despawn_recursive();
+
+            let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
+            spawn_player(
+                &mut commands,
+                &mut rip,
+                transform,
+                respawn.handle,
+                respawn.color,
+                meshes.ring.clone(),
+                materials.get(respawn.color),
+            );
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Creature Interaction
+///////////////////////////////////////////////////////////////////////////////
 
 pub fn follow_collection(
     mut commands: Commands,

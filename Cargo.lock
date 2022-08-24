@@ -866,6 +866,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "rand",
  "tiled",
+ "uuid 1.1.2",
  "winit",
 ]
 

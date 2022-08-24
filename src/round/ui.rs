@@ -1,10 +1,13 @@
 use crate::round::*;
 use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
-use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_egui::EguiPlugin;
 
 ////////////////////////////////////////////////////////////////////////////////
 #[derive(Component)]
 pub struct ZombieText;
+
+#[derive(Component)]
+pub struct PlayerText;
 
 #[derive(Component)]
 pub struct RespawnText;
@@ -17,7 +20,7 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
                 TextSection::new(
                     "Captured Zombies: ",
                     TextStyle {
-                        font_size: 60.0,
+                        font_size: 25.0,
                         color: Color::WHITE,
                         font: fonts.fira_sans.clone(),
                     },
@@ -25,7 +28,7 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
                 TextSection::new(
                     "0",
                     TextStyle {
-                        font_size: 60.0,
+                        font_size: 25.0,
                         color: Color::GOLD,
                         font: fonts.fira_sans.clone(),
                     },
@@ -34,6 +37,22 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
             .with_style(Style { align_self: AlignSelf::FlexEnd, ..default() }),
         )
         .insert(ZombieText)
+        .insert(RoundEntity);
+
+    commands
+        .spawn_bundle(
+            // Create a TextBundle that has a Text with a list of sections.
+            TextBundle::from_sections([TextSection::new(
+                "Player: ",
+                TextStyle { font_size: 25.0, color: Color::WHITE, font: fonts.fira_sans.clone() },
+            )])
+            .with_style(Style {
+                align_self: AlignSelf::FlexEnd,
+                margin: UiRect { left: Val::Auto, right: Val::Auto, ..default() },
+                ..default()
+            }),
+        )
+        .insert(PlayerText)
         .insert(RoundEntity);
 
     commands
@@ -82,15 +101,22 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
 
 fn update_round_text(
     local: Res<LocalHandles>,
-    players: Query<(Entity, &Player)>,
-    mut query: Query<&mut Text, With<ZombieText>>,
+    players: Query<&Player>,
+    mut query: Query<&mut Text, (With<ZombieText>, Without<PlayerText>)>,
+    mut player_text: Query<&mut Text, (With<PlayerText>, Without<ZombieText>)>,
 ) {
     let local_handle = local.handles[0];
-    let player = players.iter().find(|(_, p)| p.handle == local_handle);
+    let player = players.iter().find(|p| p.handle == local_handle);
 
     for mut text in &mut query {
         if let Some(player) = player {
-            text.sections[1].value = player.1.active_zombies.len().to_string();
+            text.sections[1].value = player.active_zombies.len().to_string();
+        }
+    }
+
+    for mut player_text in &mut player_text {
+        if let Some(player) = player {
+            player_text.sections[0].value = format!("Player {}", player.handle);
         }
     }
 }
@@ -189,28 +215,28 @@ fn update_respawn_text(
 ////////////////////////////////////////////////////////////////////////////////
 // EGUI
 ////////////////////////////////////////////////////////////////////////////////
-fn factors_system(
-    // mut commands: Commands,
-    // local_handles: Res<LocalHandles>,
-    mut egui_context: ResMut<EguiContext>,
-    // players: Query<(Entity, &Player)>,
-    mut creatures: Query<(Entity, &mut CreatureType, &mut CreatureFollow, &mut CreatureSize)>,
-) {
-    egui::Window::new("Edit Factors")
-        .anchor(egui::Align2::RIGHT_BOTTOM, [-10.0, -10.0])
-        .vscroll(true)
-        .show(egui_context.ctx_mut(), |ui| {
-            for (entity, c_type, mut c_follow, mut c_size) in &mut creatures {
-                ui.collapsing(
-                    format!("Entity: ({:?}): Following: {:?}", entity, c_type.0.unwrap()),
-                    |ui| {
-                        ui.add(egui::Slider::new(&mut c_follow.0, 0.0..=100.0).text("Distance"));
-                        ui.add(egui::Slider::new(&mut c_size.0, 0.0..=100.0).text("Size"));
-                    },
-                );
-            }
-        });
-}
+// fn factors_system(
+//     // mut commands: Commands,
+//     // local_handles: Res<LocalHandles>,
+//     mut egui_context: ResMut<EguiContext>,
+//     // players: Query<(Entity, &Player)>,
+//     mut creatures: Query<(Entity, &mut CreatureType, &mut CreatureFollow, &mut CreatureSize)>,
+// ) {
+//     egui::Window::new("Edit Factors")
+//         .anchor(egui::Align2::RIGHT_BOTTOM, [-10.0, -10.0])
+//         .vscroll(true)
+//         .show(egui_context.ctx_mut(), |ui| {
+//             for (entity, c_type, mut c_follow, mut c_size) in &mut creatures {
+//                 ui.collapsing(
+//                     format!("Entity: ({:?}): Following: {:?}", entity, c_type.0.unwrap()),
+//                     |ui| {
+//                         ui.add(egui::Slider::new(&mut c_follow.0, 0.0..=100.0).text("Distance"));
+//                         ui.add(egui::Slider::new(&mut c_size.0, 0.0..=100.0).text("Size"));
+//                     },
+//                 );
+//             }
+//         });
+// }
 
 pub struct RoundUIPlugin;
 impl Plugin for RoundUIPlugin {
@@ -231,7 +257,6 @@ impl Plugin for RoundUIPlugin {
                 .run_in_state(AppState::RoundLocal)
                 .with_system(update_round_text)
                 .with_system(fps_text_update_system)
-                .with_system(factors_system)
                 .with_system(update_respawn_text)
                 .into(),
         );
@@ -240,7 +265,6 @@ impl Plugin for RoundUIPlugin {
                 .run_in_state(AppState::RoundOnline)
                 .with_system(update_round_text)
                 .with_system(fps_text_update_system)
-                .with_system(factors_system)
                 .with_system(update_respawn_text)
                 .into(),
         );

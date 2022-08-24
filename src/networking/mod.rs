@@ -55,27 +55,38 @@ impl Plugin for NetworkingPlugin {
             .register_rollback_type::<BulletReady>()
             .register_rollback_type::<crate::components::Direction>()
             .register_rollback_type::<Health>()
-            // .register_rollback_type::<CreatureSize>()
+            .register_rollback_type::<Player>()
             // .register_rollback_type::<CreatureType>()
             .with_rollback_schedule(
                 Schedule::default()
                     .with_stage(
                         RollbackStages::Rollback,
                         SystemStage::parallel()
-                            .with_system(creature_grow)
+                            .with_system_set(
+                                ConditionSet::new()
+                                    .label(SystemLabels::Spawning)
+                                    .with_system(spawning)
+                                    .with_system(spawn_creatures)
+                                    .into(),
+                            )
+                            // Input + Movement
                             .with_system(apply_inputs.label(SystemLabels::Input))
                             .with_system(move_players.after(SystemLabels::Input))
-                            .with_system(increase_frame_count)
                             .with_system(reload_bullet)
                             .with_system(fire_bullets.after(move_players).after(reload_bullet)) // .with_system(move_bullet),
                             .with_system(move_bullet)
                             .with_system(kill_players.after(move_bullet).after(move_players))
-                            .with_system(respawn_players.after(kill_players)),
+                            .with_system(respawn_players.after(kill_players))
+                            // Utility Systems
+                            .with_system(
+                                increase_frame_count.run_if_resource_exists::<FrameCount>(),
+                            ),
                     )
                     .with_stage_after(
                         RollbackStages::Rollback,
                         RollbackStages::Creature,
                         SystemStage::parallel()
+                            .with_system(creature_grow)
                             .with_system(follow_collection)
                             // .with_system(target_collection_players)
                             // .with_system(target_collection_creatures)
