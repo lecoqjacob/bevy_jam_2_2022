@@ -6,21 +6,11 @@ pub struct TextureAssets {
     #[asset(path = "textures/bevy.png")]
     pub bevy_logo: Handle<Image>,
 
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 6, rows = 1))]
-    #[asset(path = "textures/tiles.png")]
-    pub tiles_atlas: Handle<TextureAtlas>,
-
-    #[asset(path = "textures/gun.png")]
-    pub gun: Handle<Image>,
-
     #[asset(path = "textures/bullet.png")]
     pub bullet: Handle<Image>,
 
-    #[asset(path = "textures/crosshair.png")]
-    pub ring: Handle<Image>,
-
-    #[asset(path = "textures/crosshair2.png")]
-    pub ring2: Handle<Image>,
+    #[asset(path = "textures/arrow.png")]
+    pub arrow: Handle<Image>,
 }
 
 #[derive(AssetCollection)]

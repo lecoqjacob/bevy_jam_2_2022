@@ -122,8 +122,6 @@ pub fn btn_listeners(
             }
         }
     }
-
-    commands.insert_resource(NextState(AppState::WorldGen));
 }
 
 pub struct MainMenuPlugin;

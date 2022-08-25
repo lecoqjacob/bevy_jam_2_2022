@@ -27,6 +27,7 @@ pub mod player_settings {
 pub struct Player {
     pub size: f32,
     pub color: Color,
+    pub handle: usize,
 
     /// rotation speed in radians per second
     pub rotation_speed: f32,
@@ -37,9 +38,10 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(color: Color) -> Self {
+    pub fn new(handle: usize, color: Color) -> Self {
         Self {
             color,
+            handle,
             size: player_settings::DEFAULT_PLAYER_SIZE,
             movement_speed: player_settings::DEFAULT_MOVE_SPEED,
             rotation_speed: f32::to_radians(player_settings::DEFAULT_ROT_SPEED),
@@ -89,33 +91,36 @@ pub struct BulletReady(pub bool);
 pub fn spawn_player(
     commands: &mut Commands,
     transform: Transform,
+    handle: usize,
     color: Color,
     ring_mesh: Handle<Mesh>,
     color_mat: Handle<ColorMaterial>,
 ) {
-    commands
+    let player = commands
         .spawn_bundle(PlayerBundle::new(transform, color))
-        .insert(Player::new(color))
-        .add_children(|p| {
-            p.spawn_bundle(SpriteBundle {
-                transform: transform.with_translation(Vec3::new(0., 10., 10.)),
-                sprite: Sprite {
-                    color: Color::BLACK,
-                    custom_size: Some(Vec2::new(5., 15.)),
-                    ..default()
-                },
-                ..default()
-            })
-            .insert(RoundEntity);
+        .insert(Player::new(handle, color))
+        .id();
 
-            p.spawn_bundle(MaterialMesh2dBundle {
-                material: color_mat,
-                mesh: ring_mesh.into(),
-                transform: transform.with_translation(Vec3::new(0., 0., 0.)),
+    commands.entity(player).add_children(|p| {
+        p.spawn_bundle(SpriteBundle {
+            transform: transform.with_translation(Vec3::new(0., 10., 10.)),
+            sprite: Sprite {
+                color: Color::BLACK,
+                custom_size: Some(Vec2::new(5., 15.)),
                 ..default()
-            })
-            .insert(RoundEntity);
-        });
+            },
+            ..default()
+        })
+        .insert(RoundEntity);
+
+        p.spawn_bundle(MaterialMesh2dBundle {
+            material: color_mat,
+            mesh: ring_mesh.into(),
+            transform: transform.with_translation(Vec3::new(0., 0., 0.)),
+            ..default()
+        })
+        .insert(RoundEntity);
+    });
 }
 
 #[derive(Default, Component, Debug)]
@@ -179,8 +184,11 @@ pub fn respawn_players(
 
         if clock.current <= 0.0 {
             commands.entity(ent).despawn_recursive();
-            spawn_events
-                .send(SpawnEvent { spawn_type: SpawnType::Player, color: Some(player.color) });
+            spawn_events.send(SpawnEvent {
+                color: Some(player.color),
+                handle: Some(player.handle),
+                spawn_type: SpawnType::Player,
+            });
         }
     }
 }

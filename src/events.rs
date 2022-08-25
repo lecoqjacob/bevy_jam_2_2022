@@ -11,7 +11,7 @@ pub struct DamageEvent {
 
 impl_new!(DamageEvent, victim: Entity, attacker: Entity);
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Eq, PartialEq)]
 pub enum SpawnType {
     #[default]
     Player,
@@ -20,6 +20,7 @@ pub enum SpawnType {
 
 #[derive(Debug, Default)]
 pub struct SpawnEvent {
+    pub handle: Option<usize>,
     pub color: Option<Color>,
     pub spawn_type: SpawnType,
 }

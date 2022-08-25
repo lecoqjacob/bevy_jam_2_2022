@@ -18,25 +18,19 @@ pub struct RightCamera;
 #[derive(Component)]
 pub struct MiniMapCamera;
 
-pub const CAMERA_X_OFFSET: f32 = 100.0;
-pub const CAMERA_Y_OFFSET: f32 = 0.0;
-
 fn setup_game_camera(mut commands: Commands) {
     // Left Camera
     commands
         .spawn_bundle(Camera2dBundle {
-            // projection: OrthographicProjection { scale: 1.1, ..Default::default() },
             transform: Transform::from_xyz(0.0, 0.0, 999.).looking_at(Vec3::ZERO, Vec3::Y),
-            camera: Camera { ..Default::default() },
+            camera: Camera { priority: 0, ..Default::default() },
             ..default()
         })
-        .insert(UiCameraConfig { show_ui: true })
         .insert(LeftCamera);
 
     // Right Camera
     commands
         .spawn_bundle(Camera2dBundle {
-            // projection: OrthographicProjection { scale: 1.1, ..Default::default() },
             transform: Transform::from_xyz(0.0, 0.0, 999.).looking_at(Vec3::ZERO, Vec3::Y),
             camera: Camera {
                 // Renders the right camera after the left camera, which has a default priority of 0
@@ -49,7 +43,6 @@ fn setup_game_camera(mut commands: Commands) {
             },
             ..default()
         })
-        .insert(UiCameraConfig { show_ui: true })
         .insert(RightCamera);
 }
 
@@ -60,8 +53,8 @@ pub fn camera_follow(
         (Without<LeftCamera>, Without<RightCamera>, Changed<Transform>, With<Player>),
     >,
     mut cameras: ParamSet<(
-        Query<&mut Transform, With<LeftCamera>>,
-        Query<&mut Transform, With<RightCamera>>,
+        Query<&mut Transform, (With<LeftCamera>, Without<MiniMapCamera>)>,
+        Query<&mut Transform, (With<RightCamera>, Without<MiniMapCamera>)>,
     )>,
 ) {
     let players = player_query.iter().collect::<Vec<_>>();

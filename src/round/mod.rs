@@ -1,7 +1,7 @@
 // This is the folder to handle the `round` or `in_game` state
 
 use crate::prelude::*;
-use bevy::{sprite::MaterialMesh2dBundle, window::WindowResized};
+use bevy::{math::Vec3Swizzles, sprite::MaterialMesh2dBundle, window::WindowResized};
 use bytemuck::{Pod, Zeroable};
 
 mod bullet;
@@ -23,6 +23,11 @@ pub const COLLECTED_ZOMBIES_TO_WIN: usize = 25;
 
 #[derive(Component)]
 pub struct RoundEntity;
+
+#[derive(Component)]
+pub struct SnapToPlayer(pub usize);
+
+pub struct RotateToP1(pub Quat);
 
 pub fn setup_round(
     windows: Res<Windows>,
@@ -52,12 +57,46 @@ pub fn setup_round(
 
     let mut colors = player_settings::PLAYER_COLORS;
     colors.shuffle(&mut thread_rng());
-    for color in colors.iter().take(2) {
-        spawn_events.send(SpawnEvent { spawn_type: SpawnType::Player, color: Some(*color) });
+    for (i, color) in colors.iter().take(2).enumerate() {
+        spawn_events.send(SpawnEvent {
+            handle: Some(i),
+            color: Some(*color),
+            spawn_type: SpawnType::Player,
+        });
     }
 
-    for _ in 0..50 {
-        spawn_events.send(SpawnEvent { spawn_type: SpawnType::Zombie, ..default() });
+    (0..50)
+        .for_each(|_| spawn_events.send(SpawnEvent { spawn_type: SpawnType::Zombie, ..default() }));
+}
+
+pub fn snap_to_player(
+    p: Query<(&Player, &Transform), With<Player>>,
+    mut q: Query<(&mut Transform, &SnapToPlayer), Without<Player>>,
+) {
+    let players = p.iter().collect::<Vec<_>>();
+    if players.len() == 2 {
+        for (mut t, s) in q.iter_mut() {
+            // Snap to player 0
+            if s.0 == 0 {
+                let p1 = players[0];
+                let p2 = players[1];
+
+                let player_translation = p1.1.translation.xy();
+                let to_player = (player_translation - p2.1.translation.xy()).normalize();
+                let rotate_to_player = Quat::from_rotation_arc(Vec3::Y, to_player.extend(0.));
+                t.rotation = rotate_to_player;
+            }
+            // snap to player 1
+            else {
+                let p1 = players[1];
+                let p2 = players[0];
+
+                let player_translation = p1.1.translation.xy();
+                let to_player = (player_translation - p2.1.translation.xy()).normalize();
+                let rotate_to_player = Quat::from_rotation_arc(Vec3::Y, to_player.extend(0.));
+                t.rotation = rotate_to_player;
+            }
+        }
     }
 }
 
@@ -73,7 +112,7 @@ pub fn spawning(
     materials: Res<MaterialAssets>,
     mut evs: EventReader<SpawnEvent>,
 ) {
-    for SpawnEvent { color, spawn_type } in evs.iter() {
+    for SpawnEvent { handle, color, spawn_type } in evs.iter() {
         match spawn_type {
             SpawnType::Zombie => {
                 let direction_vector =
@@ -92,14 +131,13 @@ pub fn spawning(
             SpawnType::Player => {
                 let (x, y) = random_map_point(settings.width, settings.height, &rng);
                 let transform = Transform::default().with_translation(Vec3::new(x, y, 10.0));
+                let handle = handle.unwrap();
                 let color = color.unwrap();
 
-                println!("Spawning player with color: {:?}", color);
-                println!("Spawning player with color: {:?}", get_color_name(color));
-                println!("MATERIAL: : {:?}", materials.get(color));
                 spawn_player(
                     &mut commands,
                     transform,
+                    handle,
                     color,
                     meshes.ring.clone(),
                     materials.get(color),
@@ -119,7 +157,11 @@ pub fn random_spawn_creatures(
         *timer += time.delta_seconds();
         if *timer >= ZOMBIE_RESPAWN_RATE {
             *timer = 0.0;
-            spawn_event.send(SpawnEvent { color: None, spawn_type: SpawnType::Zombie });
+            spawn_event.send(SpawnEvent {
+                color: None,
+                spawn_type: SpawnType::Zombie,
+                ..Default::default()
+            });
         }
     }
 }
@@ -155,6 +197,8 @@ pub fn handle_damage_events(
                         println!("Despawning zombie: {:?}", e);
                         commands.entity(*e).remove::<CreatureFollow>().remove::<CreatureTarget>();
                     });
+
+                    println!("Despawning player: {:?}", victim);
 
                     commands.entity(*victim).despawn_descendants();
 
@@ -216,6 +260,7 @@ impl Plugin for RoundPlugin {
 
         app.add_enter_system(AppState::InGame, setup_round);
         app.add_system(handle_damage_events.run_on_event::<DamageEvent>());
+        app.add_system(snap_to_player.run_in_state(AppState::InGame));
 
         ////////////////////////////////
         // Spawning

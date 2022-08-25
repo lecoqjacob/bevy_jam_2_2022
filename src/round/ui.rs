@@ -14,7 +14,14 @@ pub struct P1RespawnText;
 #[derive(Component)]
 pub struct P2RespawnText;
 
-pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
+#[derive(Component)]
+pub struct Indicator;
+
+pub fn setup_round_ui(
+    mut commands: Commands,
+    fonts: Res<FontAssets>,
+    textures: Res<TextureAssets>,
+) {
     commands
         .spawn_bundle(
             TextBundle::from_sections([
@@ -73,6 +80,126 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
             }),
         )
         .insert(P2ZombieText)
+        .insert(RoundEntity);
+
+    commands
+        .spawn_bundle(
+            TextBundle::from_sections([
+                TextSection::new(
+                    "Respawning in ",
+                    TextStyle {
+                        font_size: 15.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+                TextSection::new(
+                    "0",
+                    TextStyle {
+                        font_size: 15.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+                TextSection::new(
+                    " seconds",
+                    TextStyle {
+                        font_size: 15.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+            ])
+            .with_style(Style {
+                align_self: AlignSelf::FlexEnd,
+                position_type: PositionType::Absolute,
+                position: UiRect { top: Val::Percent(25.0), left: Val::Percent(5.), ..default() },
+                ..default()
+            }),
+        )
+        .insert(P1RespawnText)
+        .insert(RoundEntity);
+
+    commands
+        .spawn_bundle(
+            TextBundle::from_sections([
+                TextSection::new(
+                    "Respawning in ",
+                    TextStyle {
+                        font_size: 15.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+                TextSection::new(
+                    "0",
+                    TextStyle {
+                        font_size: 15.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+                TextSection::new(
+                    " seconds",
+                    TextStyle {
+                        font_size: 15.0,
+                        color: Color::WHITE,
+                        font: fonts.fira_sans.clone(),
+                    },
+                ),
+            ])
+            .with_style(Style {
+                align_self: AlignSelf::FlexEnd,
+                position_type: PositionType::Absolute,
+                position: UiRect { top: Val::Percent(25.0), left: Val::Percent(30.), ..default() },
+                ..default()
+            }),
+        )
+        .insert(P2RespawnText)
+        .insert(RoundEntity);
+
+    commands
+        .spawn_bundle(ImageBundle {
+            style: Style {
+                size: Size::new(Val::Px(30.0), Val::Auto),
+                // This takes the icons out of the flexbox flow, to be positioned exactly
+                position_type: PositionType::Absolute,
+                // The icon will be close to the left border of the button
+                position: UiRect {
+                    left: Val::Percent(35.),
+                    top: Val::Px(25.),
+                    right: Val::Auto,
+                    bottom: Val::Auto,
+                },
+                ..default()
+            },
+            image: UiImage(textures.arrow.clone()),
+            ..default()
+        })
+        .insert(Indicator)
+        .insert(SnapToPlayer(0))
+        .insert(RoundEntity);
+
+    commands
+        .spawn_bundle(ImageBundle {
+            style: Style {
+                size: Size::new(Val::Px(30.0), Val::Auto),
+                // This takes the icons out of the flexbox flow, to be positioned exactly
+                position_type: PositionType::Absolute,
+                // The icon will be close to the left border of the button
+                position: UiRect {
+                    left: Val::Percent(10.),
+                    top: Val::Px(25.),
+                    right: Val::Auto,
+                    bottom: Val::Auto,
+                },
+                ..default()
+            },
+            image: UiImage(textures.arrow.clone()),
+            ..default()
+        })
+        .insert(Indicator)
+        .insert(SnapToPlayer(1))
         .insert(RoundEntity);
 }
 
@@ -137,7 +264,8 @@ fn fps_text_setup(mut commands: Commands, fonts: Res<FontAssets>) {
             },
             ..Default::default()
         })
-        .insert(FPSText);
+        .insert(FPSText)
+        .insert(RoundEntity);
 }
 
 fn fps_text_update_system(
@@ -165,42 +293,59 @@ fn fps_text_update_system(
 ////////////////////////////////////////////////////////////////////////////////
 
 fn update_respawn_text(
-    respawns: Query<&Clock, (With<Player>, With<Dead>)>,
-    players: Query<Entity, With<Player>>,
+    respawns: Query<(&Player, &Clock), (With<Player>, With<Dead>, Changed<Clock>)>,
+    mut evs: EventReader<SpawnEvent>,
     mut texts: ParamSet<(
         Query<&mut Text, With<P1RespawnText>>,
         Query<&mut Text, With<P2RespawnText>>,
     )>,
 ) {
-    let players = players.iter().collect::<Vec<_>>();
-
-    // Player 1
-    if let Some(p1) = players.get(0) {
-        if let Ok(c) = respawns.get(*p1) {
-            for mut text in &mut texts.p0() {
-                text.sections[1].value = format!("{:.2}", c.current);
-            }
-        }
-    } else {
-        for mut text in &mut texts.p0() {
+    if respawns.is_empty() {
+        texts.p0().iter_mut().for_each(|mut text| {
             text.sections.iter_mut().for_each(|section| {
                 section.style.color.set_a(0.0);
             });
+        });
+        texts.p1().iter_mut().for_each(|mut text| {
+            text.sections.iter_mut().for_each(|section| {
+                section.style.color.set_a(0.0);
+            });
+        });
+    }
+
+    for ev in evs.iter() {
+        if ev.spawn_type == SpawnType::Player {
+            if ev.handle.unwrap() == 0 {
+                for mut text in texts.p0().iter_mut() {
+                    text.sections.iter_mut().for_each(|sec| {
+                        sec.style.color.set_a(0.0);
+                    });
+                }
+            } else {
+                for mut text in texts.p1().iter_mut() {
+                    text.sections.iter_mut().for_each(|sec| {
+                        sec.style.color.set_a(0.0);
+                    });
+                }
+            }
         }
     }
 
-    // Player 2
-    if let Some(p2) = players.get(1) {
-        if let Ok(c) = respawns.get(*p2) {
-            for mut text in &mut texts.p1() {
+    for (p, c) in respawns.iter() {
+        if p.handle == 0 {
+            for mut text in texts.p1().iter_mut() {
+                text.sections.iter_mut().for_each(|sec| {
+                    sec.style.color.set_a(1.0);
+                });
                 text.sections[1].value = format!("{:.2}", c.current);
             }
-        }
-    } else {
-        for mut text in &mut texts.p1() {
-            text.sections.iter_mut().for_each(|section| {
-                section.style.color.set_a(0.0);
-            });
+        } else {
+            for mut text in texts.p1().iter_mut() {
+                text.sections.iter_mut().for_each(|sec| {
+                    sec.style.color.set_a(1.0);
+                });
+                text.sections[1].value = format!("{:.2}", c.current);
+            }
         }
     }
 }

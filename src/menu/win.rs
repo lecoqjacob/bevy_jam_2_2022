@@ -1,3 +1,5 @@
+use bevy::render::camera::Viewport;
+
 use crate::menu::*;
 
 #[derive(Component)]
@@ -13,21 +15,34 @@ pub struct MatchData {
 }
 
 pub fn setup_win_ui(
+    windows: Res<Windows>,
     mut commands: Commands,
     match_data: Res<MatchData>,
     font_assets: Res<FontAssets>,
+    mut right_camera: Query<&mut Camera, With<RightCamera>>,
+    mut left_camera: Query<&mut Camera, (With<LeftCamera>, Without<RightCamera>)>,
 ) {
+    let window = windows.primary();
+    let mut left_camera = left_camera.single_mut();
+    left_camera.viewport = Some(Viewport {
+        physical_position: UVec2::new(0, 0),
+        physical_size: UVec2::new(window.physical_width(), window.physical_height()),
+        ..default()
+    });
+
+    let mut right_camera = right_camera.single_mut();
+    right_camera.viewport = None;
+
     // root node
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect::all(Val::Px(0.)),
-                flex_direction: FlexDirection::ColumnReverse,
-                align_content: AlignContent::Center,
-                align_items: AlignItems::Center,
                 align_self: AlignSelf::Center,
+                align_items: AlignItems::Center,
+                align_content: AlignContent::Center,
                 justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::ColumnReverse,
+                margin: UiRect::all(Val::Auto),
                 ..Default::default()
             },
             color: Color::NONE.into(),
@@ -36,16 +51,11 @@ pub fn setup_win_ui(
         .with_children(|parent| {
             // match result string
             parent.spawn_bundle(TextBundle {
-                style: Style {
-                    align_self: AlignSelf::Center,
-                    justify_content: JustifyContent::Center,
-                    ..Default::default()
-                },
                 text: Text::from_section(
                     match_data.result.clone(),
                     TextStyle {
                         font: font_assets.fira_sans.clone(),
-                        font_size: 96.,
+                        font_size: 50.,
                         color: BUTTON_TEXT,
                     },
                 ),
