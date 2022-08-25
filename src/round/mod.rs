@@ -5,16 +5,17 @@ use bevy::{sprite::MaterialMesh2dBundle, window::WindowResized};
 use bytemuck::{Pod, Zeroable};
 
 mod bullet;
-mod creature;
 mod input;
 mod player;
 mod ui;
+mod zombie;
 
 pub use bullet::*;
-pub use creature::*;
 pub use input::*;
 pub use player::*;
+use rand::{seq::SliceRandom, thread_rng};
 pub use ui::*;
+pub use zombie::*;
 
 pub const ZOMBIE_RESPAWN_RATE: f32 = 15.0; // seconds
 pub const TOTAL_ZOMBIES: usize = 100;
@@ -49,7 +50,9 @@ pub fn setup_round(
         height: main_wnd.height(),
     });
 
-    for color in player_settings::PLAYER_COLORS.iter().take(2) {
+    let mut colors = player_settings::PLAYER_COLORS;
+    colors.shuffle(&mut thread_rng());
+    for color in colors.iter().take(2) {
         spawn_events.send(SpawnEvent { spawn_type: SpawnType::Player, color: Some(*color) });
     }
 
@@ -83,13 +86,17 @@ pub fn spawning(
                         Quat::from_rotation_z(-direction_vector.x.atan2(direction_vector.y)),
                     );
 
-                let size = creature_settings::DEFAULT_CREATURE_SIZE.0;
+                let size = zombie_settings::DEFAULT_ZOMBIE_SIZE.0;
                 spawn_zombie(&mut commands, transform, direction_vector, size);
             }
             SpawnType::Player => {
                 let (x, y) = random_map_point(settings.width, settings.height, &rng);
                 let transform = Transform::default().with_translation(Vec3::new(x, y, 10.0));
                 let color = color.unwrap();
+
+                println!("Spawning player with color: {:?}", color);
+                println!("Spawning player with color: {:?}", get_color_name(color));
+                println!("MATERIAL: : {:?}", materials.get(color));
                 spawn_player(
                     &mut commands,
                     transform,
@@ -106,9 +113,9 @@ pub fn random_spawn_creatures(
     time: Res<Time>,
     mut timer: Local<f32>,
     mut spawn_event: EventWriter<SpawnEvent>,
-    total_creature_follow: Query<&CreatureFollow>,
+    total_zombie_follow: Query<&CreatureFollow>,
 ) {
-    if total_creature_follow.iter().count() < TOTAL_ZOMBIES {
+    if total_zombie_follow.iter().count() < TOTAL_ZOMBIES {
         *timer += time.delta_seconds();
         if *timer >= ZOMBIE_RESPAWN_RATE {
             *timer = 0.0;
@@ -130,9 +137,52 @@ pub fn random_map_point(width: f32, height: f32, rng: &RandomNumbers) -> (f32, f
 /// Game Utility
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn handle_damage_events(mut damages: EventReader<DamageEvent>) {
-    for ev in damages.iter() {
-        println!("{:?}", ev);
+pub fn handle_damage_events(
+    mut commands: Commands,
+    mut q: Query<&mut Health>,
+    mut damages: EventReader<DamageEvent>,
+    mut players: Query<&mut Player, Without<CreatureType>>,
+    mut zombies: Query<&mut CreatureType, Without<Player>>,
+) {
+    for DamageEvent { victim, attacker } in damages.iter() {
+        if let Ok(mut health) = q.get_mut(*victim) {
+            health.0 -= 1;
+
+            // Handle Player Cases
+            if let Ok(player) = players.get_mut(*victim) {
+                if health.0 <= 0 {
+                    player.active_zombies.iter().for_each(|e| {
+                        println!("Despawning zombie: {:?}", e);
+                        commands.entity(*e).remove::<CreatureFollow>().remove::<CreatureTarget>();
+                    });
+
+                    commands.entity(*victim).despawn_descendants();
+
+                    commands
+                        .entity(*victim)
+                        .remove_bundle::<PlayerBundle>()
+                        .insert(Dead)
+                        .insert(Clock::new(3.));
+                } else {
+                    player.active_zombies.iter().for_each(|e| {
+                        commands.entity(*e).insert(CreatureTarget(*attacker));
+                    });
+                }
+            }
+
+            // Handle Zombie Cases
+            if let Ok(z_type) = zombies.get_mut(*victim) {
+                if health.0 <= 0 {
+                    commands.entity(*victim).despawn_recursive();
+
+                    if let Some(parent) = z_type.0 {
+                        let mut player = players.get_mut(parent).unwrap();
+                        player.active_zombies.retain(|e| *e != *victim);
+                    }
+                } else {
+                }
+            }
+        }
     }
 }
 
@@ -140,7 +190,9 @@ pub fn check_win(mut commands: Commands, player: Query<&Player, Changed<Player>>
     for p in player.iter() {
         if p.active_zombies.len() >= COLLECTED_ZOMBIES_TO_WIN {
             commands.insert_resource(NextState(AppState::Win));
-            commands.insert_resource(MatchData { result: format!("Player {:?} won!", p.color) });
+            commands.insert_resource(MatchData {
+                result: format!("Player {:?} won!", get_color_name(p.color)),
+            });
         }
     }
 }

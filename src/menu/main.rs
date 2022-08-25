@@ -107,7 +107,6 @@ pub fn setup_main_menu_ui(
 
 pub fn btn_listeners(
     mut commands: Commands,
-    keys: Res<Input<KeyCode>>,
     mut exit: EventWriter<AppExit>,
     mut interaction_query: Query<(&Interaction, &MenuMainBtn), Changed<Interaction>>,
 ) {

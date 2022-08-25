@@ -2,19 +2,21 @@
 
 use bevy::prelude::Color;
 
-pub const BLUE: Color = Color::rgb(0.8, 0.6, 0.2);
-pub const ORANGE: Color = Color::rgb(0., 0.35, 0.8);
-pub const MAGENTA: Color = Color::rgb(0.9, 0.2, 0.2);
+pub const RED: Color = Color::TOMATO;
+pub const BLUE: Color = Color::BLUE;
+pub const PURPLE: Color = Color::PURPLE;
 pub const GREEN: Color = Color::rgb(0.35, 0.7, 0.35);
 
 pub fn get_color_name(color: Color) -> &'static str {
     if color == BLUE {
-        "Blue"
-    } else if color == ORANGE {
-        "Orange"
-    } else if color == MAGENTA {
-        "Magenta"
-    } else {
-        "Green"
+        return "Blue";
+    } else if color == RED {
+        return "Red";
+    } else if color == PURPLE {
+        return "Purple";
+    } else if color == GREEN {
+        return "Green";
     }
+
+    unreachable!("Should never get here")
 }

@@ -1,13 +1,23 @@
 use crate::prelude::*;
 
-#[derive(Component, Reflect, Default, Debug)]
-pub struct BulletReady(pub bool);
+#[derive(Component, Debug)]
+pub struct Clock {
+    pub initial: f32,
+    pub current: f32,
+}
 
-#[derive(Component, Reflect)]
-pub struct Bullet;
+impl Clock {
+    pub fn new(initial: f32) -> Self {
+        Self { initial, current: initial }
+    }
 
-#[derive(Component, Reflect, Debug)]
-pub struct FiredBy(pub Entity);
+    pub fn reset(&mut self) {
+        self.current = self.initial;
+    }
+}
+
+#[derive(Component, Debug)]
+pub struct Dead;
 
 #[derive(Default, Component, Clone, Debug, PartialEq, Reflect)]
 pub struct Direction(pub Vec2);
@@ -41,14 +51,11 @@ pub struct CreatureSize(pub f32);
 pub struct CreatureFollow(pub f32);
 
 // Doing the targetting
-#[derive(Reflect, Component, Clone, Debug)]
+#[derive(Component, Clone, Debug)]
 pub struct CreatureTarget(pub Entity);
 
-#[derive(Default, Reflect, Component, Clone, Debug)]
+#[derive(Default, Component, Clone, Debug)]
 pub struct Health(pub i32);
 
-#[derive(Default, Reflect, Component, Clone, Debug)]
-pub struct Respawn {
-    pub time: f32,
-    pub color: Color,
-}
+// #[derive(Default, Component, Clone, Debug)]
+// pub struct Respawn(pub Color);

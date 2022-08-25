@@ -8,7 +8,7 @@ pub enum GameKey {
     LocalLeft,
     LocalRight,
     LocalAttack,
-    LocalPickup,
+    LocalShift,
 
     // These are remote keys for when the game is running online
     Up,
@@ -16,7 +16,7 @@ pub enum GameKey {
     Left,
     Right,
     Attack,
-    Pickup,
+    Shift,
 }
 
 impl GameKey {
@@ -27,13 +27,14 @@ impl GameKey {
             GameKey::LocalLeft => KeyCode::A,
             GameKey::LocalRight => KeyCode::D,
             GameKey::LocalAttack => KeyCode::Space,
-            GameKey::LocalPickup => KeyCode::E,
+            GameKey::LocalShift => KeyCode::LShift,
+
             GameKey::Up => KeyCode::Up,
             GameKey::Down => KeyCode::Down,
             GameKey::Left => KeyCode::Left,
             GameKey::Right => KeyCode::Right,
             GameKey::Attack => KeyCode::Return,
-            GameKey::Pickup => KeyCode::E,
+            GameKey::Shift => KeyCode::Return,
         }
     }
 
@@ -48,14 +49,14 @@ impl GameKey {
             GameKey::LocalDown => keyboard_input.just_released(KeyCode::S),
             GameKey::LocalLeft => keyboard_input.just_released(KeyCode::A),
             GameKey::LocalRight => keyboard_input.just_released(KeyCode::D),
-            GameKey::LocalPickup => keyboard_input.just_released(KeyCode::G),
+            GameKey::LocalShift => keyboard_input.just_released(KeyCode::LShift),
             GameKey::LocalAttack => keyboard_input.just_released(KeyCode::Space),
             //Online
             GameKey::Up => keyboard_input.just_released(KeyCode::Up),
             GameKey::Down => keyboard_input.just_released(KeyCode::Down),
             GameKey::Left => keyboard_input.just_released(KeyCode::Left),
             GameKey::Right => keyboard_input.just_released(KeyCode::Right),
-            GameKey::Pickup => keyboard_input.just_released(KeyCode::Return),
+            GameKey::Shift => keyboard_input.just_released(KeyCode::Return),
             GameKey::Attack => keyboard_input.just_released(KeyCode::RShift),
         }
     }
@@ -67,14 +68,14 @@ impl GameKey {
             GameKey::LocalDown => keyboard_input.pressed(KeyCode::S),
             GameKey::LocalLeft => keyboard_input.pressed(KeyCode::A),
             GameKey::LocalRight => keyboard_input.pressed(KeyCode::D),
-            GameKey::LocalPickup => keyboard_input.pressed(KeyCode::G),
+            GameKey::LocalShift => keyboard_input.pressed(KeyCode::LShift),
             GameKey::LocalAttack => keyboard_input.pressed(KeyCode::Space),
             //Online
             GameKey::Up => keyboard_input.pressed(KeyCode::Up),
             GameKey::Down => keyboard_input.pressed(KeyCode::Down),
             GameKey::Left => keyboard_input.pressed(KeyCode::Left),
             GameKey::Right => keyboard_input.pressed(KeyCode::Right),
-            GameKey::Pickup => keyboard_input.pressed(KeyCode::Return),
+            GameKey::Shift => keyboard_input.pressed(KeyCode::Return),
             GameKey::Attack => keyboard_input.pressed(KeyCode::RShift),
         }
     }
@@ -86,14 +87,14 @@ impl GameKey {
             GameKey::LocalDown => keyboard_input.just_pressed(KeyCode::S),
             GameKey::LocalLeft => keyboard_input.just_pressed(KeyCode::A),
             GameKey::LocalRight => keyboard_input.just_pressed(KeyCode::D),
-            GameKey::LocalPickup => keyboard_input.just_pressed(KeyCode::G),
+            GameKey::LocalShift => keyboard_input.just_pressed(KeyCode::LShift),
             GameKey::LocalAttack => keyboard_input.just_pressed(KeyCode::Space),
             //Online
             GameKey::Up => keyboard_input.just_pressed(KeyCode::Up),
             GameKey::Down => keyboard_input.just_pressed(KeyCode::Down),
             GameKey::Left => keyboard_input.just_pressed(KeyCode::Left),
             GameKey::Right => keyboard_input.just_pressed(KeyCode::Right),
-            GameKey::Pickup => keyboard_input.just_pressed(KeyCode::Return),
+            GameKey::Shift => keyboard_input.just_pressed(KeyCode::Return),
             GameKey::Attack => keyboard_input.just_pressed(KeyCode::RShift),
         }
     }

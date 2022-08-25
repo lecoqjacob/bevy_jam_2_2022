@@ -3,13 +3,16 @@ use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 
 ////////////////////////////////////////////////////////////////////////////////
 #[derive(Component)]
-pub struct ZombieText;
+pub struct P1ZombieText;
 
 #[derive(Component)]
-pub struct PlayerText;
+pub struct P2ZombieText;
 
 #[derive(Component)]
-pub struct RespawnText;
+pub struct P1RespawnText;
+
+#[derive(Component)]
+pub struct P2RespawnText;
 
 pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
     commands
@@ -39,7 +42,8 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
                 ..default()
             }),
         )
-        .insert(ZombieText);
+        .insert(P1ZombieText)
+        .insert(RoundEntity);
 
     commands
         .spawn_bundle(
@@ -68,138 +72,28 @@ pub fn setup_round_ui(mut commands: Commands, fonts: Res<FontAssets>) {
                 ..default()
             }),
         )
-        .insert(ZombieText);
-
-    // root node
-    // commands
-    //     .spawn_bundle(NodeBundle {
-    //         style: Style {
-    //             size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-    //             justify_content: JustifyContent::SpaceBetween,
-    //             align_items: AlignItems::Center,
-    //             align_content: AlignContent::Center,
-    //             ..default()
-    //         },
-    //         color: Color::NONE.into(),
-    //         ..default()
-    //     })
-    //     .with_children(|parent| {
-    //         parent
-    //             .spawn_bundle(
-    //                 // Create a TextBundle that has a Text with a list of sections.
-    //                 TextBundle::from_sections([
-    //                     TextSection::new(
-    //                         "Captured Zombies: ",
-    //                         TextStyle {
-    //                             font_size: 15.0,
-    //                             color: Color::WHITE,
-    //                             font: fonts.fira_sans.clone(),
-    //                         },
-    //                     ),
-    //                     TextSection::new(
-    //                         "0",
-    //                         TextStyle {
-    //                             font_size: 15.0,
-    //                             color: Color::GOLD,
-    //                             font: fonts.fira_sans.clone(),
-    //                         },
-    //                     ),
-    //                 ])
-    //                 .with_style(Style {
-    //                     size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-    //                     justify_content: JustifyContent::SpaceBetween,
-    //                     align_content: AlignContent::Center,
-    //                     align_items: AlignItems::Center,
-    //                     ..default()
-    //                 })
-    //                 .with_text_alignment(TextAlignment::CENTER),
-    //             )
-    //             .insert(ZombieText)
-    //             .insert(RoundEntity);
-
-    //         parent
-    //             .spawn_bundle(
-    //                 // Create a TextBundle that has a Text with a list of sections.
-    //                 TextBundle::from_sections([TextSection::new(
-    //                     "Player: ",
-    //                     TextStyle {
-    //                         font_size: 25.0,
-    //                         color: Color::WHITE,
-    //                         font: fonts.fira_sans.clone(),
-    //                     },
-    //                 )])
-    //                 .with_style(Style {
-    //                     align_self: AlignSelf::FlexEnd,
-    //                     margin: UiRect { left: Val::Auto, right: Val::Auto, ..default() },
-    //                     ..default()
-    //                 }),
-    //             )
-    //             .insert(PlayerText)
-    //             .insert(RoundEntity);
-    //     });
-
-    // commands
-    //     .spawn_bundle(
-    //         // Create a TextBundle that has a Text with a list of sections.
-    //         TextBundle::from_sections([
-    //             TextSection::new(
-    //                 "Respawning in ",
-    //                 TextStyle {
-    //                     font_size: 40.0,
-    //                     color: Color::WHITE,
-    //                     font: fonts.fira_sans.clone(),
-    //                 },
-    //             ),
-    //             TextSection::new(
-    //                 "0",
-    //                 TextStyle {
-    //                     font_size: 40.0,
-    //                     color: Color::GOLD,
-    //                     font: fonts.fira_sans.clone(),
-    //                 },
-    //             ),
-    //             TextSection::new(
-    //                 " seconds",
-    //                 TextStyle {
-    //                     font_size: 40.0,
-    //                     color: Color::WHITE,
-    //                     font: fonts.fira_sans.clone(),
-    //                 },
-    //             ),
-    //         ])
-    //         .with_style(Style {
-    //             position_type: PositionType::Absolute,
-    //             position: UiRect {
-    //                 bottom: Val::Percent(50.),
-    //                 left: Val::Percent(35.),
-    //                 ..Default::default()
-    //             },
-    //             align_content: AlignContent::Center,
-    //             ..default()
-    //         }),
-    //     )
-    //     .insert(RespawnText)
-    //     .insert(RoundEntity);
+        .insert(P2ZombieText)
+        .insert(RoundEntity);
 }
 
 fn update_round_text(
     players: Query<&Player>,
-    mut query: Query<&mut Text, (With<ZombieText>, Without<PlayerText>)>,
-    mut player_text: Query<&mut Text, (With<PlayerText>, Without<ZombieText>)>,
+    mut texts: ParamSet<(
+        Query<&mut Text, With<P1ZombieText>>,
+        Query<&mut Text, With<P2ZombieText>>,
+    )>,
 ) {
-    // let player = players.iter().find(|p| p.handle == local_handle);
-
-    // for mut text in &mut query {
-    //     if let Some(player) = player {
-    //         text.sections[1].value = player.active_zombies.len().to_string();
-    //     }
-    // }
-
-    // for mut player_text in &mut player_text {
-    //     if let Some(player) = player {
-    //         player_text.sections[0].value = format!("Player {}", player.handle);
-    //     }
-    // }
+    let players = players.iter().collect::<Vec<_>>();
+    if let Some(p1) = players.get(0) {
+        for mut text in &mut texts.p0() {
+            text.sections[1].value = p1.active_zombies.len().to_string();
+        }
+    }
+    if let Some(p2) = players.get(1) {
+        for mut text in &mut texts.p1() {
+            text.sections[1].value = p2.active_zombies.len().to_string();
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -208,7 +102,7 @@ fn update_round_text(
 #[derive(Component)]
 struct FPSText;
 
-fn fps_text_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn fps_text_setup(mut commands: Commands, fonts: Res<FontAssets>) {
     commands
         .spawn_bundle(TextBundle {
             style: Style {
@@ -225,7 +119,7 @@ fn fps_text_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     TextSection {
                         value: "FPS: ".to_string(),
                         style: TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: fonts.fira_sans.clone(),
                             font_size: 15.0,
                             color: Color::WHITE,
                         },
@@ -233,7 +127,7 @@ fn fps_text_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     TextSection {
                         value: "0".to_string(),
                         style: TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: fonts.fira_sans.clone(),
                             font_size: 15.0,
                             color: Color::GREEN,
                         },
@@ -270,23 +164,45 @@ fn fps_text_update_system(
 // Respawn
 ////////////////////////////////////////////////////////////////////////////////
 
-fn update_respawn_text(respawns: Query<&Respawn>, mut query: Query<&mut Text, With<RespawnText>>) {
-    // let handle = local_handles.handles[0];
-    // if let Some(r) = respawns.iter().find(|r| r.handle == handle) {
-    //     for mut text in query.iter_mut() {
-    //         text.sections.iter_mut().for_each(|section| {
-    //             section.style.color.set_a(1.0);
-    //         });
+fn update_respawn_text(
+    respawns: Query<&Clock, (With<Player>, With<Dead>)>,
+    players: Query<Entity, With<Player>>,
+    mut texts: ParamSet<(
+        Query<&mut Text, With<P1RespawnText>>,
+        Query<&mut Text, With<P2RespawnText>>,
+    )>,
+) {
+    let players = players.iter().collect::<Vec<_>>();
 
-    //         text.sections[1].value = format!("{:.00}", r.time);
-    //     }
-    // } else {
-    //     for mut text in query.iter_mut() {
-    //         text.sections.iter_mut().for_each(|section| {
-    //             section.style.color.set_a(0.0);
-    //         });
-    //     }
-    // }
+    // Player 1
+    if let Some(p1) = players.get(0) {
+        if let Ok(c) = respawns.get(*p1) {
+            for mut text in &mut texts.p0() {
+                text.sections[1].value = format!("{:.2}", c.current);
+            }
+        }
+    } else {
+        for mut text in &mut texts.p0() {
+            text.sections.iter_mut().for_each(|section| {
+                section.style.color.set_a(0.0);
+            });
+        }
+    }
+
+    // Player 2
+    if let Some(p2) = players.get(1) {
+        if let Ok(c) = respawns.get(*p2) {
+            for mut text in &mut texts.p1() {
+                text.sections[1].value = format!("{:.2}", c.current);
+            }
+        }
+    } else {
+        for mut text in &mut texts.p1() {
+            text.sections.iter_mut().for_each(|section| {
+                section.style.color.set_a(0.0);
+            });
+        }
+    }
 }
 
 pub struct RoundUIPlugin;

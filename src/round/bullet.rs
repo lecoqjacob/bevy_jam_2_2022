@@ -1,5 +1,20 @@
 use crate::round::*;
 
+///////////////////////////////////////////////////////////////////////////////
+// Bullet Components
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Component)]
+pub struct Bullet;
+
+#[derive(Component, Debug)]
+pub struct FiredBy(pub Entity);
+
+///////////////////////////////////////////////////////////////////////////////
+
+pub const BULLET_SPEED: f32 = 600.;
+pub const BULLET_FLIGHT_TIME: f32 = 3.;
+
 pub fn reload_bullet(mut query: Query<(&PlayerControls, &mut BulletReady)>) {
     for (controls, mut bullet_ready) in query.iter_mut() {
         if !controls.firing {
@@ -27,6 +42,7 @@ pub fn fire_bullets(
                 })
                 .insert(Bullet)
                 .insert(FiredBy(player_ent))
+                .insert(Clock::new(BULLET_FLIGHT_TIME))
                 .insert(RoundEntity);
 
             bullet_ready.0 = false;
@@ -34,9 +50,18 @@ pub fn fire_bullets(
     }
 }
 
-pub fn move_bullet(time: Res<Time>, mut query: Query<&mut Transform, With<Bullet>>) {
-    for mut t in query.iter_mut() {
+pub fn move_bullet(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &mut Clock), With<Bullet>>,
+) {
+    for (bullet, mut t, mut bullet_timer) in query.iter_mut() {
         apply_forward_delta(&time, &mut t, BULLET_SPEED, 1.0);
+        bullet_timer.current -= time.delta_seconds();
+
+        if bullet_timer.current <= 0.0 {
+            commands.entity(bullet).despawn_recursive();
+        }
     }
 }
 

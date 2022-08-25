@@ -37,23 +37,25 @@ pub struct MeshAssets {
 }
 
 pub struct MaterialAssets {
+    pub transparent_red: Handle<ColorMaterial>,
     pub transparent_blue: Handle<ColorMaterial>,
     pub transparent_green: Handle<ColorMaterial>,
-    pub transparent_orange: Handle<ColorMaterial>,
-    pub transparent_magenta: Handle<ColorMaterial>,
+    pub transparent_purple: Handle<ColorMaterial>,
 }
 
 impl MaterialAssets {
     pub fn get(&self, color: Color) -> Handle<ColorMaterial> {
         if color == BLUE {
-            self.transparent_blue.clone()
+            return self.transparent_blue.clone();
+        } else if color == RED {
+            return self.transparent_red.clone();
+        } else if color == PURPLE {
+            return self.transparent_purple.clone();
         } else if color == GREEN {
-            self.transparent_green.clone()
-        } else if color == ORANGE {
-            self.transparent_orange.clone()
-        } else {
-            self.transparent_magenta.clone()
+            return self.transparent_green.clone();
         }
+
+        unreachable!("Should never get here")
     }
 }
 
@@ -73,16 +75,16 @@ fn setup(
         materials.add(ColorMaterial::from(Color::rgba(BLUE.r(), BLUE.g(), BLUE.b(), 0.2)));
     let transparent_green =
         materials.add(ColorMaterial::from(Color::rgba(GREEN.r(), GREEN.g(), GREEN.b(), 0.2)));
-    let transparent_orange =
-        materials.add(ColorMaterial::from(Color::rgba(ORANGE.r(), ORANGE.g(), ORANGE.b(), 0.2)));
-    let transparent_magenta =
-        materials.add(ColorMaterial::from(Color::rgba(MAGENTA.r(), MAGENTA.g(), MAGENTA.b(), 0.2)));
+    let transparent_red =
+        materials.add(ColorMaterial::from(Color::rgba(RED.r(), RED.g(), RED.b(), 0.2)));
+    let transparent_purple =
+        materials.add(ColorMaterial::from(Color::rgba(PURPLE.r(), PURPLE.g(), PURPLE.b(), 0.2)));
 
     commands.insert_resource(MaterialAssets {
         transparent_blue,
         transparent_green,
-        transparent_orange,
-        transparent_magenta,
+        transparent_red,
+        transparent_purple,
     });
 
     // Loading Menu

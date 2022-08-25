@@ -16,7 +16,7 @@ pub struct LeftCamera;
 pub struct RightCamera;
 
 #[derive(Component)]
-pub struct UICamera;
+pub struct MiniMapCamera;
 
 pub const CAMERA_X_OFFSET: f32 = 100.0;
 pub const CAMERA_Y_OFFSET: f32 = 0.0;
@@ -95,8 +95,6 @@ fn update_camera_viewports(
     // so then each camera always takes up half the screen.
     // A resize_event is sent when the window is first created, allowing us to reuse this system for initial setup.
     for resize_event in resize_events.iter() {
-        println!("{:?}", resize_event);
-
         if resize_event.id == WindowId::primary() {
             let window = windows.primary();
             let mut left_camera = left_camera.single_mut();
@@ -124,6 +122,7 @@ impl Plugin for CameraPlugin {
         // Online
         app.add_system_set(
             ConditionSet::new()
+                .label(SystemLabels::CameraMove)
                 .run_in_state(AppState::InGame)
                 .with_system(camera_follow)
                 .with_system(update_camera_viewports)

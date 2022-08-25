@@ -8,7 +8,6 @@ pub mod win;
 pub use main::*;
 pub use win::*;
 
-const DISABLED_BUTTON: Color = Color::rgb(0.8, 0.5, 0.5);
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);

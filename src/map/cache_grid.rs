@@ -70,9 +70,9 @@ impl CacheGrid {
 
 pub fn cache_grid_update_system(
     mut cache_grid: ResMut<CacheGrid>,
-    creature_query: Query<(Entity, &Transform), Changed<Transform>>,
+    zombie_query: Query<(Entity, &Transform), Changed<Transform>>,
 ) {
-    for (entity, transform) in creature_query.iter() {
+    for (entity, transform) in zombie_query.iter() {
         cache_grid.update_entity(entity, transform.translation.xy());
     }
 }

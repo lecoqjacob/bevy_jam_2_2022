@@ -2,21 +2,28 @@ use bevy::math::Vec3Swizzles;
 
 use crate::round::*;
 
+use self::player_settings::SPEED_MULTIPLIER;
+
 pub mod player_settings {
     use crate::colors::*;
     use bevy::prelude::Color;
 
-    pub const DEFAULT_ROT_SPEED: f32 = 360.;
+    pub const SPEED_MULTIPLIER: f32 = 1.2;
+    pub const DEFAULT_ROT_SPEED: f32 = 250.;
     pub const DEFAULT_PLAYER_SIZE: f32 = 25.;
     pub const DEFAULT_MOVE_SPEED: f32 = 200.;
 
     pub const FOLLOW_COLLECTION_DISTANCE: f32 = 100.;
     pub const TARGET_COLLECTION_DISTANCE: f32 = 100.;
 
-    pub const PLAYER_COLORS: [Color; 4] = [BLUE, ORANGE, MAGENTA, GREEN];
+    pub const PLAYER_COLORS: [Color; 4] = [BLUE, RED, PURPLE, GREEN];
 }
 
-#[derive(Reflect, Debug, Default, Component, Clone)]
+///////////////////////////////////////////////////////////////////////////////
+// Player Components
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Default, Component, Clone)]
 pub struct Player {
     pub size: f32,
     pub color: Color,
@@ -41,6 +48,44 @@ impl Player {
     }
 }
 
+#[derive(Bundle)]
+pub struct PlayerBundle {
+    #[bundle]
+    sprite: SpriteBundle,
+    health: Health,
+    ready: BulletReady,
+    controls: PlayerControls,
+    round_entity: RoundEntity,
+}
+
+impl PlayerBundle {
+    pub fn new(transform: Transform, color: Color) -> Self {
+        Self {
+            health: Health(10),
+            sprite: SpriteBundle {
+                transform,
+                sprite: Sprite {
+                    color,
+                    custom_size: Some(Vec2::new(
+                        player_settings::DEFAULT_PLAYER_SIZE,
+                        player_settings::DEFAULT_PLAYER_SIZE,
+                    )),
+                    ..default()
+                },
+                ..default()
+            },
+            ready: BulletReady(true),
+            round_entity: RoundEntity,
+            controls: PlayerControls::default(),
+        }
+    }
+}
+
+#[derive(Component, Default, Debug)]
+pub struct BulletReady(pub bool);
+
+///////////////////////////////////////////////////////////////////////////////
+
 pub fn spawn_player(
     commands: &mut Commands,
     transform: Transform,
@@ -48,53 +93,37 @@ pub fn spawn_player(
     ring_mesh: Handle<Mesh>,
     color_mat: Handle<ColorMaterial>,
 ) {
-    println!("spawn_player: transform={:?}", transform);
-
-    let player_comp = Player::new(color);
-    let player = commands
-        .spawn_bundle(SpriteBundle {
-            transform,
-            sprite: Sprite {
-                color,
-                custom_size: Some(Vec2::new(player_comp.size, player_comp.size)),
+    commands
+        .spawn_bundle(PlayerBundle::new(transform, color))
+        .insert(Player::new(color))
+        .add_children(|p| {
+            p.spawn_bundle(SpriteBundle {
+                transform: transform.with_translation(Vec3::new(0., 10., 10.)),
+                sprite: Sprite {
+                    color: Color::BLACK,
+                    custom_size: Some(Vec2::new(5., 15.)),
+                    ..default()
+                },
                 ..default()
-            },
-            ..default()
-        })
-        .insert(player_comp)
-        .insert(PlayerControls::default())
-        .insert(BulletReady(true))
-        .insert(Health(10))
-        .insert(RoundEntity)
-        .id();
+            })
+            .insert(RoundEntity);
 
-    commands.entity(player).add_children(|p| {
-        p.spawn_bundle(SpriteBundle {
-            transform: transform.with_translation(Vec3::new(0., 10., 5.)),
-            sprite: Sprite {
-                color: Color::BLACK,
-                custom_size: Some(Vec2::new(5., 15.)),
+            p.spawn_bundle(MaterialMesh2dBundle {
+                material: color_mat,
+                mesh: ring_mesh.into(),
+                transform: transform.with_translation(Vec3::new(0., 0., 0.)),
                 ..default()
-            },
-            ..default()
-        })
-        .insert(RoundEntity);
-
-        p.spawn_bundle(MaterialMesh2dBundle {
-            transform: transform.with_translation(Vec3::new(0., 0., 0.)),
-            mesh: ring_mesh.into(),
-            material: color_mat,
-            ..default()
-        })
-        .insert(RoundEntity);
-    });
+            })
+            .insert(RoundEntity);
+        });
 }
 
-#[derive(Default, Reflect, Component, Debug)]
+#[derive(Default, Component, Debug)]
 pub struct PlayerControls {
     pub accel: f32,
     pub steer: f32,
     pub firing: bool,
+    pub shift: bool,
 }
 
 pub fn move_players(
@@ -104,7 +133,12 @@ pub fn move_players(
 ) {
     for (mut t, c, p) in query.iter_mut() {
         t.rotate_z(c.steer * p.rotation_speed * time.delta_seconds());
-        apply_forward_delta(&time, &mut t, p.movement_speed, c.accel);
+        apply_forward_delta(
+            &time,
+            &mut t,
+            p.movement_speed,
+            if c.shift { c.accel * SPEED_MULTIPLIER } else { c.accel },
+        );
 
         // constrain cube to plane
         let (map_width, map_height) = (map_settings.width, map_settings.height);
@@ -115,14 +149,11 @@ pub fn move_players(
 
 pub fn kill_players(
     mut commands: Commands,
-    bullet_query: Query<(Entity, &Transform, &FiredBy), With<Bullet>>,
-    mut player_query: Query<
-        (Entity, &Player, &Transform, &mut Health),
-        (With<Player>, Without<Bullet>),
-    >,
     mut damage_events: EventWriter<DamageEvent>,
+    bullet_query: Query<(Entity, &Transform, &FiredBy), With<Bullet>>,
+    player_query: Query<(Entity, &Player, &Transform), (With<Player>, Without<Bullet>)>,
 ) {
-    for (player_ent, target_player, player_transform, mut p_health) in player_query.iter_mut() {
+    for (player_ent, target_player, player_transform) in player_query.iter() {
         for (bullet_ent, bullet_transform, fired_by) in bullet_query.iter() {
             let distance = Vec2::distance(
                 player_transform.translation.xy(),
@@ -131,25 +162,7 @@ pub fn kill_players(
 
             if distance < (target_player.size / 2.) {
                 commands.entity(bullet_ent).despawn_recursive();
-
-                damage_events.send(DamageEvent(player_ent));
-
-                // p_health.0 -= 1;
-                // if p_health.0 <= 0 {
-                //     target_player.active_zombies.iter().for_each(|e| {
-                //         commands.entity(*e).remove::<CreatureFollow>().remove::<CreatureTarget>();
-                //     });
-
-                //     commands.spawn().insert(Respawn { time: 3., color: target_player.color });
-                //     commands.entity(player_ent).despawn_recursive();
-                // } else {
-                //     target_player.active_zombies.iter().for_each(|e| {
-                //         commands
-                //             .entity(*e)
-                //             // .remove::<CreatureFollow>()
-                //             .insert(CreatureTarget(fired_by.0));
-                //     });
-                // }
+                damage_events.send(DamageEvent::new(player_ent, fired_by.0));
             }
         }
     }
@@ -158,16 +171,16 @@ pub fn kill_players(
 pub fn respawn_players(
     time: Res<Time>,
     mut commands: Commands,
-    mut respawns: Query<(Entity, &mut Respawn)>,
+    mut respawns: Query<(Entity, &Player, &mut Clock), With<Dead>>,
     mut spawn_events: EventWriter<SpawnEvent>,
 ) {
-    for (ent, mut respawn) in &mut respawns {
-        respawn.time -= time.delta_seconds();
+    for (ent, player, mut clock) in &mut respawns {
+        clock.current -= time.delta_seconds();
 
-        if respawn.time <= 0.0 {
+        if clock.current <= 0.0 {
             commands.entity(ent).despawn_recursive();
             spawn_events
-                .send(SpawnEvent { spawn_type: SpawnType::Player, color: Some(respawn.color) });
+                .send(SpawnEvent { spawn_type: SpawnType::Player, color: Some(player.color) });
         }
     }
 }
@@ -180,25 +193,25 @@ pub fn follow_collection(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
     mut players: Query<(Entity, &mut Player, &Transform)>,
-    mut creature_query: Query<
+    mut zombie_query: Query<
         (Entity, &mut Sprite, &Transform),
         (With<CreatureType>, Without<CreatureFollow>, Without<CreatureTarget>),
     >,
 ) {
     for (player_ent, mut player, transform) in &mut players {
-        for (creature_ent, mut sprite, _) in creature_query.iter_mut().filter(|(_, _, t)| {
+        for (zombie_ent, mut sprite, _) in zombie_query.iter_mut().filter(|(_, _, t)| {
             Vec2::distance(transform.translation.xy(), t.translation.xy())
                 < player_settings::FOLLOW_COLLECTION_DISTANCE
         }) {
             let follow_distance = rng.range(
-                creature_settings::FOLLOW_PLAYER_MIN_DISTANCE,
-                creature_settings::FOLLOW_PLAYER_MAX_DISTANCE,
+                zombie_settings::FOLLOW_PLAYER_MIN_DISTANCE,
+                zombie_settings::FOLLOW_PLAYER_MAX_DISTANCE,
             );
 
-            player.active_zombies.push(creature_ent);
+            player.active_zombies.push(zombie_ent);
             sprite.color = player.color;
             commands
-                .entity(creature_ent)
+                .entity(zombie_ent)
                 .insert(CreatureType(Some(player_ent)))
                 .insert(CreatureFollow(follow_distance));
         }
@@ -211,6 +224,7 @@ impl Plugin for PlayerPlugin {
         ////////////////////////////////
         // Input
         ////////////////////////////////
+
         app.add_system_set(
             ConditionSet::new()
                 .label(SystemLabels::Input)
@@ -222,6 +236,7 @@ impl Plugin for PlayerPlugin {
             ConditionSet::new()
                 .label(SystemLabels::PlayerMove)
                 .after(SystemLabels::Input)
+                .before(SystemLabels::CameraMove)
                 .run_in_state(AppState::InGame)
                 .with_system(move_players)
                 .into(),

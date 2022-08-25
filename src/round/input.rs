@@ -5,8 +5,7 @@ pub const INPUT_DOWN: u8 = 1 << 1;
 pub const INPUT_LEFT: u8 = 1 << 2;
 pub const INPUT_RIGHT: u8 = 1 << 3;
 pub const INPUT_FIRE: u8 = 1 << 4;
-
-pub const BULLET_SPEED: f32 = 500.;
+pub const INPUT_SHIFT: u8 = 1 << 5;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Pod, Zeroable)]
@@ -32,6 +31,9 @@ pub fn input(keyboard_input: Res<Input<KeyCode>>) -> [u8; 2] {
     if GameKey::LocalAttack.pressed(&keyboard_input) {
         left_inp |= INPUT_FIRE;
     }
+    if GameKey::LocalShift.pressed(&keyboard_input) {
+        left_inp |= INPUT_SHIFT;
+    }
 
     // Right Player
     if GameKey::Up.pressed(&keyboard_input) {
@@ -48,6 +50,9 @@ pub fn input(keyboard_input: Res<Input<KeyCode>>) -> [u8; 2] {
     }
     if GameKey::Attack.pressed(&keyboard_input) {
         right_inp |= INPUT_FIRE;
+    }
+    if GameKey::Shift.pressed(&keyboard_input) {
+        right_inp |= INPUT_SHIFT;
     }
 
     // GameInput(left_inp, right_inp)
@@ -74,7 +79,8 @@ pub fn apply_inputs(In(inputs): In<[u8; 2]>, mut query: Query<&mut PlayerControl
             0.
         };
 
-        c.firing = if input & INPUT_FIRE != 0 { true } else { false };
+        c.firing = input & INPUT_FIRE != 0;
+        c.shift = input & INPUT_SHIFT != 0;
     }
 }
 

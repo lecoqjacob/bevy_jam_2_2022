@@ -1,6 +1,5 @@
 use crate::{impl_new, prelude::*};
 use bevy::prelude::*;
-use bevy_ggrs::SessionType;
 
 mod cache_grid;
 mod tiled;
