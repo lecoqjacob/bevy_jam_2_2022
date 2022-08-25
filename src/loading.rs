@@ -117,7 +117,7 @@ fn setup(
 pub struct LoadingPlugin;
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(RandomNumbers::seeded(RANDOM_SEED));
+        app.insert_resource(RandomNumbers::default());
 
         app.add_startup_system(setup)
             .add_exit_system(AppState::AssetLoading, despawn_all_with::<LoadingMenu>)

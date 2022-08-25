@@ -7,7 +7,6 @@ mod events;
 mod loading;
 mod map;
 mod menu;
-mod networking;
 mod random;
 mod round;
 mod state;
@@ -33,7 +32,6 @@ mod prelude {
     pub use crate::loading::*;
     pub use crate::map::*;
     pub use crate::menu::*;
-    pub use crate::networking::*;
     pub use crate::random::*;
     pub use crate::round::*;
     pub use crate::state::*;
@@ -70,7 +68,6 @@ pub fn app() -> App {
         .add_plugin(LoadingPlugin)
         .add_plugins(MenuPlugins)
         .add_plugin(MapPlugin)
-        .add_plugin(NetworkingPlugin)
         .add_plugin(RoundPlugin);
 
     app

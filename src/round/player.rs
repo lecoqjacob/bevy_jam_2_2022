@@ -1,3 +1,5 @@
+use bevy::math::Vec3Swizzles;
+
 use crate::round::*;
 
 pub mod player_settings {
@@ -17,7 +19,6 @@ pub mod player_settings {
 #[derive(Reflect, Debug, Default, Component, Clone)]
 pub struct Player {
     pub size: f32,
-    pub handle: usize,
     pub color: Color,
 
     /// rotation speed in radians per second
@@ -29,9 +30,8 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(handle: usize, color: Color) -> Self {
+    pub fn new(color: Color) -> Self {
         Self {
-            handle,
             color,
             size: player_settings::DEFAULT_PLAYER_SIZE,
             movement_speed: player_settings::DEFAULT_MOVE_SPEED,
@@ -43,14 +43,14 @@ impl Player {
 
 pub fn spawn_player(
     commands: &mut Commands,
-    rip: &mut RollbackIdProvider,
     transform: Transform,
-    handle: usize,
     color: Color,
     ring_mesh: Handle<Mesh>,
     color_mat: Handle<ColorMaterial>,
 ) {
-    let player_comp = Player::new(handle, color);
+    println!("spawn_player: transform={:?}", transform);
+
+    let player_comp = Player::new(color);
     let player = commands
         .spawn_bundle(SpriteBundle {
             transform,
@@ -63,8 +63,6 @@ pub fn spawn_player(
         })
         .insert(player_comp)
         .insert(PlayerControls::default())
-        .insert(Checksum::default())
-        .insert(Rollback::new(rip.next_id()))
         .insert(BulletReady(true))
         .insert(Health(10))
         .insert(RoundEntity)
@@ -83,7 +81,7 @@ pub fn spawn_player(
         .insert(RoundEntity);
 
         p.spawn_bundle(MaterialMesh2dBundle {
-            transform,
+            transform: transform.with_translation(Vec3::new(0., 0., 0.)),
             mesh: ring_mesh.into(),
             material: color_mat,
             ..default()
@@ -96,15 +94,17 @@ pub fn spawn_player(
 pub struct PlayerControls {
     pub accel: f32,
     pub steer: f32,
+    pub firing: bool,
 }
 
 pub fn move_players(
+    time: Res<Time>,
     map_settings: Res<MapSettings>,
-    mut query: Query<(&mut Transform, &PlayerControls, &Player), With<Rollback>>,
+    mut query: Query<(&mut Transform, &PlayerControls, &Player)>,
 ) {
     for (mut t, c, p) in query.iter_mut() {
-        t.rotate_z(c.steer * p.rotation_speed * TIME_STEP);
-        apply_forward_delta(&mut t, p.movement_speed, c.accel);
+        t.rotate_z(c.steer * p.rotation_speed * time.delta_seconds());
+        apply_forward_delta(&time, &mut t, p.movement_speed, c.accel);
 
         // constrain cube to plane
         let (map_width, map_height) = (map_settings.width, map_settings.height);
@@ -120,6 +120,7 @@ pub fn kill_players(
         (Entity, &Player, &Transform, &mut Health),
         (With<Player>, Without<Bullet>),
     >,
+    mut damage_events: EventWriter<DamageEvent>,
 ) {
     for (player_ent, target_player, player_transform, mut p_health) in player_query.iter_mut() {
         for (bullet_ent, bullet_transform, fired_by) in bullet_query.iter() {
@@ -131,55 +132,42 @@ pub fn kill_players(
             if distance < (target_player.size / 2.) {
                 commands.entity(bullet_ent).despawn_recursive();
 
-                p_health.0 -= 1;
-                if p_health.0 <= 0 {
-                    target_player.active_zombies.iter().for_each(|e| {
-                        commands.entity(*e).remove::<CreatureFollow>().remove::<CreatureTarget>();
-                    });
+                damage_events.send(DamageEvent(player_ent));
 
-                    commands.spawn().insert(Respawn {
-                        time: 3.,
-                        handle: target_player.handle,
-                        color: target_player.color,
-                    });
+                // p_health.0 -= 1;
+                // if p_health.0 <= 0 {
+                //     target_player.active_zombies.iter().for_each(|e| {
+                //         commands.entity(*e).remove::<CreatureFollow>().remove::<CreatureTarget>();
+                //     });
 
-                    commands.entity(player_ent).despawn_recursive();
-                } else {
-                    target_player.active_zombies.iter().for_each(|e| {
-                        commands
-                            .entity(*e)
-                            // .remove::<CreatureFollow>()
-                            .insert(CreatureTarget(fired_by.0));
-                    });
-                }
+                //     commands.spawn().insert(Respawn { time: 3., color: target_player.color });
+                //     commands.entity(player_ent).despawn_recursive();
+                // } else {
+                //     target_player.active_zombies.iter().for_each(|e| {
+                //         commands
+                //             .entity(*e)
+                //             // .remove::<CreatureFollow>()
+                //             .insert(CreatureTarget(fired_by.0));
+                //     });
+                // }
             }
         }
     }
 }
 
 pub fn respawn_players(
+    time: Res<Time>,
     mut commands: Commands,
-    meshes: Res<MeshAssets>,
-    materials: Res<MaterialAssets>,
-    mut rip: ResMut<RollbackIdProvider>,
     mut respawns: Query<(Entity, &mut Respawn)>,
+    mut spawn_events: EventWriter<SpawnEvent>,
 ) {
     for (ent, mut respawn) in &mut respawns {
-        respawn.time -= TIME_STEP;
+        respawn.time -= time.delta_seconds();
 
         if respawn.time <= 0.0 {
             commands.entity(ent).despawn_recursive();
-
-            let transform = Transform::default().with_translation(Vec3::new(0.0, 0.0, 10.0));
-            spawn_player(
-                &mut commands,
-                &mut rip,
-                transform,
-                respawn.handle,
-                respawn.color,
-                meshes.ring.clone(),
-                materials.get(respawn.color),
-            );
+            spawn_events
+                .send(SpawnEvent { spawn_type: SpawnType::Player, color: Some(respawn.color) });
         }
     }
 }
@@ -217,65 +205,58 @@ pub fn follow_collection(
     }
 }
 
-// pub fn target_collection_players(
-//     mut commands: Commands,
-//     rng: Res<RandomNumbers>,
-//     mut players: Query<(Entity, &mut Player, &Transform)>,
-//     creature_query: Query<
-//         (Entity, &Transform, &CreatureType),
-//         (With<CreatureFollow>, Without<CreatureTarget>),
-//     >,
-// ) {
-//     for (player_ent, mut player, transform) in &mut players {
-//         for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, c)| {
-//             Vec2::distance(transform.translation.xy(), t.translation.xy())
-//                 < player_settings::TARGET_COLLECTION_DISTANCE
-//                 && c.0.unwrap() != player_ent
-//         }) {
-//             let follow_distance = rng.range(
-//                 creature_settings::TARGET_PLAYER_MIN_DISTANCE,
-//                 creature_settings::TARGET_PLAYER_MAX_DISTANCE,
-//             );
+pub struct PlayerPlugin;
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        ////////////////////////////////
+        // Input
+        ////////////////////////////////
+        app.add_system_set(
+            ConditionSet::new()
+                .label(SystemLabels::Input)
+                .run_in_state(AppState::InGame)
+                .with_system(input.chain(apply_inputs))
+                .into(),
+        )
+        .add_system_set(
+            ConditionSet::new()
+                .label(SystemLabels::PlayerMove)
+                .after(SystemLabels::Input)
+                .run_in_state(AppState::InGame)
+                .with_system(move_players)
+                .into(),
+        );
 
-//             player.attacking_zombies += 1;
-//             commands.entity(creature_ent).insert(CreatureTarget::new(player_ent, follow_distance));
-//             commands
-//                 .entity(player_ent)
-//                 .insert(CreatureTargeted::new(creature_ent, follow_distance));
-//         }
-//     }
-// }
+        ////////////////////////////////
+        // Collection
+        ////////////////////////////////
+        app.add_system_set(
+            ConditionSet::new()
+                .label(SystemLabels::Collection)
+                .run_in_state(AppState::InGame)
+                .with_system(follow_collection)
+                .into(),
+        );
 
-// pub fn target_collection_creatures(
-//     mut commands: Commands,
-//     rng: Res<RandomNumbers>,
-//     target_creature_query: Query<
-//         (Entity, &Transform, &CreatureType),
-//         (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
-//     >,
-//     creature_query: Query<
-//         (Entity, &Transform, &CreatureType),
-//         (With<CreatureFollow>, Without<CreatureTarget>, Without<CreatureTargeted>),
-//     >,
-// ) {
-//     for (target_creature_ent, &transform, target_type) in &target_creature_query {
-//         for (creature_ent, _, _) in creature_query.iter().filter(|(_, t, creature_type)| {
-//             Vec2::distance(transform.translation.xy(), t.translation.xy())
-//                 < creature_settings::TARGET_COLLECTION_DISTANCE
-//                 && target_type.0 != creature_type.0
-//         }) {
-//             let follow_distance = rng.range(
-//                 creature_settings::TARGET_PLAYER_MIN_DISTANCE,
-//                 creature_settings::TARGET_PLAYER_MAX_DISTANCE,
-//             );
+        ////////////////////////////////
+        // Death
+        ////////////////////////////////
+        app.add_system_set(
+            ConditionSet::new()
+                .label(SystemLabels::PlayerDamage)
+                .after(SystemLabels::PlayerMove)
+                .after(SystemLabels::BulletMove)
+                .run_in_state(AppState::InGame)
+                .with_system(kill_players)
+                .into(),
+        );
 
-//             commands
-//                 .entity(creature_ent)
-//                 .insert(CreatureTarget::new(target_creature_ent, follow_distance));
-
-//             commands
-//                 .entity(target_creature_ent)
-//                 .insert(CreatureTargeted::new(creature_ent, follow_distance));
-//         }
-//     }
-// }
+        app.add_system_set(
+            ConditionSet::new()
+                .after(SystemLabels::PlayerDamage)
+                .run_in_state(AppState::InGame)
+                .with_system(respawn_players)
+                .into(),
+        );
+    }
+}

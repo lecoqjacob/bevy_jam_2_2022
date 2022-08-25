@@ -50,6 +50,5 @@ pub struct Health(pub i32);
 #[derive(Default, Reflect, Component, Clone, Debug)]
 pub struct Respawn {
     pub time: f32,
-    pub handle: usize,
     pub color: Color,
 }

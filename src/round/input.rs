@@ -10,64 +10,53 @@ pub const BULLET_SPEED: f32 = 500.;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Pod, Zeroable)]
-pub struct GameInput {
-    pub inp: u8,
-}
+pub struct GameInput(pub u8, pub u8);
 
-pub fn input(
-    handle: In<PlayerHandle>,
-    local_handles: Res<LocalHandles>,
-    keyboard_input: Res<Input<KeyCode>>,
-) -> GameInput {
-    let mut inp: u8 = 0;
+pub fn input(keyboard_input: Res<Input<KeyCode>>) -> [u8; 2] {
+    let mut left_inp: u8 = 0;
+    let mut right_inp: u8 = 0;
 
-    if handle.0 == local_handles.handles[0] {
-        if GameKey::LocalUp.pressed(&keyboard_input) {
-            inp |= INPUT_UP;
-        }
-        if GameKey::LocalLeft.pressed(&keyboard_input) {
-            inp |= INPUT_LEFT;
-        }
-        if GameKey::LocalDown.pressed(&keyboard_input) {
-            inp |= INPUT_DOWN;
-        }
-        if GameKey::LocalRight.pressed(&keyboard_input) {
-            inp |= INPUT_RIGHT;
-        }
-        if GameKey::LocalAttack.pressed(&keyboard_input) {
-            inp |= INPUT_FIRE;
-        }
-    } else {
-        if GameKey::Up.pressed(&keyboard_input) {
-            inp |= INPUT_UP;
-        }
-        if GameKey::Left.pressed(&keyboard_input) {
-            inp |= INPUT_LEFT;
-        }
-        if GameKey::Down.pressed(&keyboard_input) {
-            inp |= INPUT_DOWN;
-        }
-        if GameKey::Right.pressed(&keyboard_input) {
-            inp |= INPUT_RIGHT;
-        }
-        if GameKey::Attack.pressed(&keyboard_input) {
-            inp |= INPUT_FIRE;
-        }
+    // Left Player
+    if GameKey::LocalUp.pressed(&keyboard_input) {
+        left_inp |= INPUT_UP;
+    }
+    if GameKey::LocalLeft.pressed(&keyboard_input) {
+        left_inp |= INPUT_LEFT;
+    }
+    if GameKey::LocalDown.pressed(&keyboard_input) {
+        left_inp |= INPUT_DOWN;
+    }
+    if GameKey::LocalRight.pressed(&keyboard_input) {
+        left_inp |= INPUT_RIGHT;
+    }
+    if GameKey::LocalAttack.pressed(&keyboard_input) {
+        left_inp |= INPUT_FIRE;
     }
 
-    GameInput { inp }
+    // Right Player
+    if GameKey::Up.pressed(&keyboard_input) {
+        right_inp |= INPUT_UP;
+    }
+    if GameKey::Left.pressed(&keyboard_input) {
+        right_inp |= INPUT_LEFT;
+    }
+    if GameKey::Down.pressed(&keyboard_input) {
+        right_inp |= INPUT_DOWN;
+    }
+    if GameKey::Right.pressed(&keyboard_input) {
+        right_inp |= INPUT_RIGHT;
+    }
+    if GameKey::Attack.pressed(&keyboard_input) {
+        right_inp |= INPUT_FIRE;
+    }
+
+    // GameInput(left_inp, right_inp)
+    [left_inp, right_inp]
 }
 
-pub fn apply_inputs(
-    mut query: Query<(&mut PlayerControls, &Player)>,
-    inputs: Res<Vec<(GameInput, InputStatus)>>,
-) {
-    for (mut c, p) in query.iter_mut() {
-        let input = match inputs[p.handle].1 {
-            InputStatus::Confirmed => inputs[p.handle].0.inp,
-            InputStatus::Predicted => inputs[p.handle].0.inp,
-            InputStatus::Disconnected => 0, // disconnected players do nothing
-        };
+pub fn apply_inputs(In(inputs): In<[u8; 2]>, mut query: Query<&mut PlayerControls>) {
+    for (i, mut c) in query.iter_mut().enumerate() {
+        let input = inputs[i];
 
         c.steer = if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
             1.
@@ -84,6 +73,8 @@ pub fn apply_inputs(
         } else {
             0.
         };
+
+        c.firing = if input & INPUT_FIRE != 0 { true } else { false };
     }
 }
 
@@ -91,15 +82,11 @@ pub fn apply_inputs(
 // Helper functions
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn is_firing(input: u8) -> bool {
-    input & INPUT_FIRE != 0
-}
-
-pub fn apply_forward_delta(transform: &mut Transform, acc: f32, move_speed: f32) {
+pub fn apply_forward_delta(time: &Time, transform: &mut Transform, acc: f32, move_speed: f32) {
     // get the player's forward vector by applying the current rotation to the players initial facing vector
     let movement_direction = transform.rotation * Vec3::Y;
     // get the distance the player will move based on direction, the player's movement speed and delta time
-    let movement_distance = acc * move_speed * TIME_STEP;
+    let movement_distance = acc * move_speed * time.delta_seconds();
     // create the change in translation using the new movement direction and distance
     let translation_delta = movement_direction * movement_distance;
 

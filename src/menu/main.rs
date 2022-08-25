@@ -1,15 +1,12 @@
-use crate::{menu::*, GGRSConfig, CHECK_DISTANCE, FPS, INPUT_DELAY, MAX_PREDICTION, NUM_PLAYERS};
+use crate::menu::*;
 use bevy::app::AppExit;
-use bevy_ggrs::SessionType;
-use ggrs::{PlayerType, SessionBuilder};
 
 #[derive(Component)]
 pub struct MenuMainUI;
 
 #[derive(Component)]
 pub enum MenuMainBtn {
-    OnlineMatch,
-    LocalMatch,
+    PlayGame,
     Quit,
 }
 
@@ -64,7 +61,7 @@ pub fn setup_main_menu_ui(
                 .with_children(|parent| {
                     parent.spawn_bundle(TextBundle {
                         text: Text::from_section(
-                            "Online",
+                            "Play Game",
                             TextStyle {
                                 font: font_assets.fira_sans.clone(),
                                 font_size: 40.0,
@@ -74,36 +71,7 @@ pub fn setup_main_menu_ui(
                         ..Default::default()
                     });
                 })
-                .insert(MenuMainBtn::OnlineMatch);
-
-            // local mode button
-            parent
-                .spawn_bundle(ButtonBundle {
-                    style: Style {
-                        size: Size::new(Val::Px(200.0), Val::Px(65.0)),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        margin: UiRect::all(Val::Px(16.)),
-                        padding: UiRect::all(Val::Px(16.)),
-                        ..Default::default()
-                    },
-                    color: NORMAL_BUTTON.into(),
-                    ..Default::default()
-                })
-                .with_children(|parent| {
-                    parent.spawn_bundle(TextBundle {
-                        text: Text::from_section(
-                            "Local",
-                            TextStyle {
-                                font: font_assets.fira_sans.clone(),
-                                font_size: 40.0,
-                                color: BUTTON_TEXT,
-                            },
-                        ),
-                        ..Default::default()
-                    });
-                })
-                .insert(MenuMainBtn::LocalMatch);
+                .insert(MenuMainBtn::PlayGame);
 
             // quit button
             parent
@@ -139,17 +107,14 @@ pub fn setup_main_menu_ui(
 
 pub fn btn_listeners(
     mut commands: Commands,
+    keys: Res<Input<KeyCode>>,
     mut exit: EventWriter<AppExit>,
     mut interaction_query: Query<(&Interaction, &MenuMainBtn), Changed<Interaction>>,
 ) {
     for (interaction, btn) in interaction_query.iter_mut() {
         if let Interaction::Clicked = *interaction {
             match btn {
-                MenuMainBtn::OnlineMatch => {
-                    commands.insert_resource(NextState(AppState::MenuOnline));
-                }
-                MenuMainBtn::LocalMatch => {
-                    create_synctest_session(&mut commands);
+                MenuMainBtn::PlayGame => {
                     commands.insert_resource(NextState(AppState::WorldGen));
                 }
                 MenuMainBtn::Quit => {
@@ -158,27 +123,8 @@ pub fn btn_listeners(
             }
         }
     }
-}
 
-fn create_synctest_session(commands: &mut Commands) {
-    let mut sess_build = SessionBuilder::<GGRSConfig>::new()
-        .with_num_players(NUM_PLAYERS)
-        .with_max_prediction_window(MAX_PREDICTION)
-        .with_fps(FPS)
-        .expect("Invalid FPS")
-        .with_input_delay(INPUT_DELAY)
-        .with_check_distance(CHECK_DISTANCE);
-
-    for i in 0..NUM_PLAYERS {
-        sess_build =
-            sess_build.add_player(PlayerType::Local, i).expect("Could not add local player");
-    }
-
-    let sess = sess_build.start_synctest_session().expect("");
-
-    commands.insert_resource(sess);
-    commands.insert_resource(SessionType::SyncTestSession);
-    commands.insert_resource(LocalHandles { handles: (0..NUM_PLAYERS).collect() });
+    commands.insert_resource(NextState(AppState::WorldGen));
 }
 
 pub struct MainMenuPlugin;

@@ -2,15 +2,10 @@
 
 use crate::prelude::*;
 
-pub mod connect;
 pub mod main;
-pub mod online;
 pub mod win;
 
-use bevy::prelude::PluginGroup;
-pub use connect::*;
 pub use main::*;
-pub use online::*;
 pub use win::*;
 
 const DISABLED_BUTTON: Color = Color::rgb(0.8, 0.5, 0.5);
@@ -40,6 +35,6 @@ pub fn btn_visuals<BTN: Component>(
 pub struct MenuPlugins;
 impl PluginGroup for MenuPlugins {
     fn build(&mut self, group: &mut bevy::app::PluginGroupBuilder) {
-        group.add(MainMenuPlugin).add(ConnectMenuPlugin).add(OnlineMenuPlugin).add(WinMenuPlugin);
+        group.add(MainMenuPlugin).add(WinMenuPlugin);
     }
 }

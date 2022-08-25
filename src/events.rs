@@ -1,17 +1,20 @@
 use crate::prelude::*;
 
-#[derive(Reflect, Component, Clone, Debug)]
+#[derive(Component, Debug)]
 pub struct ApplyForceEvent(pub Entity, pub Vec2, pub f32);
 
-#[derive(Reflect, Component, Clone, Debug)]
-pub enum RespawnType {
+#[derive(Component, Debug)]
+pub struct DamageEvent(pub Entity);
+
+#[derive(Component, Debug, Default)]
+pub enum SpawnType {
+    #[default]
     Player,
     Zombie,
 }
 
+#[derive(Debug, Default)]
 pub struct SpawnEvent {
-    pub point: Option<(f32, f32)>,
     pub color: Option<Color>,
-    pub handle: Option<usize>,
-    pub spawn_type: RespawnType,
+    pub spawn_type: SpawnType,
 }

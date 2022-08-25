@@ -4,17 +4,28 @@ use bevy::prelude::SystemLabel;
 pub enum AppState {
     AssetLoading,
     MenuMain,
-    MenuOnline,
-    MenuConnect,
+    InGame,
+    // MenuOnline,
+    // MenuConnect,
     WorldGen,
-    RoundLocal,
-    RoundOnline,
+    // RoundLocal,
+    // RoundOnline,
     Win,
 }
 
 #[derive(SystemLabel, Debug, Clone, Hash, Eq, PartialEq)]
 pub enum SystemLabels {
-    Spawning,
     Input,
-    Velocity,
+    Spawning,
+
+    PlayerMove,
+    Collection,
+    PlayerDamage,
+
+    BulletReload,
+    BulletMove,
+
+    ZombieMove,
+    ApplyForce,
+    ZombieDamage,
 }

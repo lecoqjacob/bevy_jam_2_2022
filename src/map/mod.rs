@@ -25,7 +25,7 @@ impl MapSettings {
     }
 }
 
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>, session_type: Res<SessionType>) {
+fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let tilemap_size = TilemapSize { x: TILE_MAP_WIDTH, y: TILE_MAP_HEIGHT };
 
     let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
@@ -42,13 +42,7 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>, session_type:
         tilemap_size.y as f32 * tile_size.y,
     ));
 
-    let next_state = match *session_type {
-        SessionType::SyncTestSession => AppState::RoundLocal,
-        SessionType::P2PSession => AppState::RoundOnline,
-        _ => unreachable!("We Dont handle spectator D:"),
-    };
-
-    commands.insert_resource(NextState(next_state))
+    commands.insert_resource(NextState(AppState::InGame))
 }
 
 pub struct MapPlugin;

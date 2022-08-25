@@ -27,7 +27,6 @@ pub mod creature_settings {
 
 pub fn spawn_zombie(
     commands: &mut Commands,
-    rip: &mut RollbackIdProvider,
     transform: Transform,
     direction_vector: Vec2,
     size: f32,
@@ -45,13 +44,13 @@ pub fn spawn_zombie(
         .insert(Direction(direction_vector))
         .insert(CreatureType::default())
         .insert(CreatureSize(size))
-        .insert(Rollback::new(rip.next_id()))
         .insert(Health(2))
         .insert(RoundEntity)
         .id()
 }
 
 pub fn apply_force_event_system(
+    time: Res<Time>,
     mut apply_force_event_handler: EventReader<ApplyForceEvent>,
     mut creature_query: Query<&mut crate::components::Direction>,
 ) {
@@ -61,7 +60,7 @@ pub fn apply_force_event_system(
                 continue;
             }
 
-            direction.lerp(*force, factor * TIME_STEP);
+            direction.lerp(*force, factor * time.delta_seconds());
         }
     }
 }
@@ -71,6 +70,7 @@ pub fn apply_force_event_system(
 ////////////////////////////////////////////////////////////////////////////////
 
 pub fn creatures_follow(
+    time: Res<Time>,
     map_settings: Res<MapSettings>,
     player_q: Query<(Entity, &Transform), (With<Player>, Without<CreatureType>)>,
     mut creatures: Query<
@@ -89,12 +89,13 @@ pub fn creatures_follow(
                 if distance < c_follow.0 { continue } else { creature_settings::CREATURE_SPEED };
 
             // Move and rotate based on direction
-            move_target(&mut transform, direction, speed, &map_settings);
+            move_target(&time, &mut transform, direction, speed, &map_settings);
         }
     }
 }
 
 pub fn creatures_target(
+    time: Res<Time>,
     mut commands: Commands,
     mut player_entity: Local<Option<Entity>>,
     mut attack_timer: Local<f32>,
@@ -110,7 +111,7 @@ pub fn creatures_target(
 ) {
     if query.iter().len() > 0 {
         let can_attack = *attack_timer > creature_settings::CREATURE_ATTACK_COOLDOWN;
-        *attack_timer += TIME_STEP;
+        *attack_timer += time.delta_seconds();
 
         for (creature, mut transform, direction, target) in &mut query {
             if let Some((p_entity, p_transform, player, mut health)) =
@@ -129,17 +130,14 @@ pub fn creatures_target(
                                 .remove::<CreatureTarget>();
                         });
 
-                        commands.spawn().insert(Respawn {
-                            time: 3.,
-                            handle: player.handle,
-                            color: player.color,
-                        });
+                        commands.spawn().insert(Respawn { time: 3., color: player.color });
 
                         commands.entity(creature).remove::<CreatureTarget>();
                         *player_entity = Some(p_entity);
                     }
                 } else {
                     move_target(
+                        &time,
                         &mut transform,
                         direction,
                         creature_settings::CREATURE_SPEED,
@@ -158,14 +156,15 @@ pub fn creatures_target(
 }
 
 fn move_target(
+    time: &Time,
     transform: &mut Transform,
     direction: &crate::components::Direction,
     speed: f32,
     map_settings: &MapSettings,
 ) {
     // Move and rotate based on direction
-    transform.translation.x += direction.0.x * speed * TIME_STEP;
-    transform.translation.y += direction.0.y * speed * TIME_STEP;
+    transform.translation.x += direction.0.x * speed * time.delta_seconds();
+    transform.translation.y += direction.0.y * speed * time.delta_seconds();
     transform.rotation = Quat::from_rotation_z(-direction.0.x.atan2(direction.0.y));
 
     // Clamp to map bounds
@@ -178,7 +177,7 @@ fn move_target(
 // Creature Utility Systems
 ////////////////////////////////////////////////////////////////////////////////
 
-pub fn creature_grow(mut creatures: Query<(&mut Sprite, &CreatureSize)>) {
+pub fn creature_grow(time: Res<Time>, mut creatures: Query<(&mut Sprite, &CreatureSize)>) {
     for (mut c_sprite, c_size) in &mut creatures {
         let mut sprite_size = c_sprite.custom_size.unwrap();
         let new_size = Vec2::new(c_size.0, c_size.0);
@@ -192,7 +191,7 @@ pub fn creature_grow(mut creatures: Query<(&mut Sprite, &CreatureSize)>) {
             continue;
         }
 
-        sprite_size = sprite_size.lerp(new_size, 2. * TIME_STEP);
+        sprite_size = sprite_size.lerp(new_size, 2. * time.delta_seconds());
         c_sprite.custom_size = Some(sprite_size);
     }
 }
@@ -408,4 +407,54 @@ pub fn follow_system(
             });
         }
     });
+}
+
+pub struct ZombiePlugin;
+impl Plugin for ZombiePlugin {
+    fn build(&self, app: &mut App) {
+        // Force
+        app.add_system_set(
+            ConditionSet::new()
+                .label(SystemLabels::ApplyForce)
+                .run_in_state(AppState::InGame)
+                .with_system(creature_grow)
+                .with_system(follow_system)
+                .with_system(flocking_system)
+                .into(),
+        )
+        .add_system(
+            apply_force_event_system.run_in_state(AppState::InGame).after(SystemLabels::ApplyForce),
+        );
+
+        // movement
+        app.add_system_set(
+            ConditionSet::new()
+                .label(SystemLabels::ZombieMove)
+                .run_in_state(AppState::InGame)
+                .with_system(creatures_follow)
+                .with_system(creatures_target)
+                .into(),
+        );
+
+        app.add_system_set(
+            ConditionSet::new()
+                .after(SystemLabels::ZombieMove)
+                .run_in_state(AppState::InGame)
+                .with_system(cache_grid_update_system)
+                .into(),
+        );
+
+        ////////////////////////////////
+        // Death
+        ////////////////////////////////
+        app.add_system_set(
+            ConditionSet::new()
+                .label(SystemLabels::ZombieDamage)
+                .after(SystemLabels::PlayerMove)
+                .after(SystemLabels::BulletMove)
+                .run_in_state(AppState::InGame)
+                .with_system(kill_creatures)
+                .into(),
+        );
+    }
 }
