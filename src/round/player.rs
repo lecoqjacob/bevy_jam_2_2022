@@ -61,13 +61,15 @@ pub struct PlayerBundle {
 }
 
 impl PlayerBundle {
-    pub fn new(transform: Transform, color: Color) -> Self {
+    pub fn new(transform: Transform, color: Color, texture: Handle<Image>) -> Self {
         Self {
             health: Health(10),
             sprite: SpriteBundle {
                 transform,
+                texture,
                 sprite: Sprite {
                     color,
+                    flip_y: true,
                     custom_size: Some(Vec2::new(
                         player_settings::DEFAULT_PLAYER_SIZE,
                         player_settings::DEFAULT_PLAYER_SIZE,
@@ -86,6 +88,9 @@ impl PlayerBundle {
 #[derive(Component, Default, Debug)]
 pub struct BulletReady(pub bool);
 
+#[derive(Component, Default, Debug)]
+pub struct HealthBar;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 pub fn spawn_player(
@@ -93,24 +98,26 @@ pub fn spawn_player(
     transform: Transform,
     handle: usize,
     color: Color,
+    texture: Handle<Image>,
     ring_mesh: Handle<Mesh>,
     color_mat: Handle<ColorMaterial>,
 ) {
     let player = commands
-        .spawn_bundle(PlayerBundle::new(transform, color))
+        .spawn_bundle(PlayerBundle::new(transform, color, texture))
         .insert(Player::new(handle, color))
         .id();
 
     commands.entity(player).add_children(|p| {
         p.spawn_bundle(SpriteBundle {
-            transform: transform.with_translation(Vec3::new(0., 10., 10.)),
+            transform: transform.with_translation(Vec3::new(0., -25., 10.)),
             sprite: Sprite {
-                color: Color::BLACK,
-                custom_size: Some(Vec2::new(5., 15.)),
+                color: Color::GREEN,
+                custom_size: Some(Vec2::new(15., 5.)),
                 ..default()
             },
             ..default()
         })
+        .insert(HealthBar)
         .insert(RoundEntity);
 
         p.spawn_bundle(MaterialMesh2dBundle {

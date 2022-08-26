@@ -108,6 +108,7 @@ pub fn spawning(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
     meshes: Res<MeshAssets>,
+    textures: Res<TextureAssets>,
     settings: Res<MapSettings>,
     materials: Res<MaterialAssets>,
     mut evs: EventReader<SpawnEvent>,
@@ -139,6 +140,7 @@ pub fn spawning(
                     transform,
                     handle,
                     color,
+                    textures.tank.clone(),
                     meshes.ring.clone(),
                     materials.get(color),
                 );
@@ -230,6 +232,25 @@ pub fn handle_damage_events(
     }
 }
 
+pub fn update_health(
+    players: Query<&Health, With<Player>>,
+    mut healths: Query<(&Parent, &mut Sprite), With<HealthBar>>,
+) {
+    for (parent, mut sprite) in &mut healths {
+        let parent_ent = parent.get();
+        if let Ok(health) = players.get(parent_ent) {
+            let health = health.0;
+            if health > 7 {
+                sprite.color = Color::GREEN;
+            } else if health > 3 {
+                sprite.color = Color::YELLOW;
+            } else {
+                sprite.color = Color::RED;
+            }
+        }
+    }
+}
+
 pub fn check_win(mut commands: Commands, player: Query<&Player, Changed<Player>>) {
     for p in player.iter() {
         if p.active_zombies.len() >= COLLECTED_ZOMBIES_TO_WIN {
@@ -259,8 +280,14 @@ impl Plugin for RoundPlugin {
             .add_plugin(RoundUIPlugin);
 
         app.add_enter_system(AppState::InGame, setup_round);
-        app.add_system(handle_damage_events.run_on_event::<DamageEvent>());
-        app.add_system(snap_to_player.run_in_state(AppState::InGame));
+        app.add_system_set(
+            ConditionSet::new()
+                .run_in_state(AppState::InGame)
+                .with_system(snap_to_player)
+                .with_system(update_health)
+                .with_system(handle_damage_events.run_on_event::<DamageEvent>())
+                .into(),
+        );
 
         ////////////////////////////////
         // Spawning

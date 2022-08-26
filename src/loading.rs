@@ -11,6 +11,9 @@ pub struct TextureAssets {
 
     #[asset(path = "textures/arrow.png")]
     pub arrow: Handle<Image>,
+
+    #[asset(path = "textures/tank.png")]
+    pub tank: Handle<Image>,
 }
 
 #[derive(AssetCollection)]
