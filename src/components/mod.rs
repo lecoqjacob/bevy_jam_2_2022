@@ -59,3 +59,6 @@ pub struct Health(pub i32);
 
 // #[derive(Default, Component, Clone, Debug)]
 // pub struct Respawn(pub Color);
+
+#[derive(Default, Component, Clone, Debug)]
+pub struct MusicController(pub Handle<bevy::audio::AudioSink>);

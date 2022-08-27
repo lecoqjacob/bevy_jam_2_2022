@@ -1,7 +1,9 @@
 // This is the folder to handle the `round` or `in_game` state
 
 use crate::prelude::*;
-use bevy::{math::Vec3Swizzles, sprite::MaterialMesh2dBundle, window::WindowResized};
+use bevy::{
+    audio::AudioSink, math::Vec3Swizzles, sprite::MaterialMesh2dBundle, window::WindowResized,
+};
 use bytemuck::{Pod, Zeroable};
 
 mod bullet;
@@ -112,6 +114,9 @@ pub fn spawning(
     settings: Res<MapSettings>,
     materials: Res<MaterialAssets>,
     mut evs: EventReader<SpawnEvent>,
+    audio: Res<Audio>,
+    audio_assets: Res<AudioAssets>,
+    audio_sinks: Res<Assets<AudioSink>>,
 ) {
     for SpawnEvent { handle, color, spawn_type } in evs.iter() {
         match spawn_type {
@@ -135,6 +140,16 @@ pub fn spawning(
                 let handle = handle.unwrap();
                 let color = color.unwrap();
 
+                let music = if handle == 1 {
+                    audio_assets.tank_one.clone()
+                } else {
+                    audio_assets.tank_two.clone()
+                };
+                let music_handle = audio_sinks.get_handle(audio.play_with_settings(
+                    music,
+                    PlaybackSettings { repeat: true, volume: 0.01, speed: 1.0 },
+                ));
+
                 spawn_player(
                     &mut commands,
                     transform,
@@ -143,6 +158,7 @@ pub fn spawning(
                     textures.tank.clone(),
                     meshes.ring.clone(),
                     materials.get(color),
+                    MusicController(music_handle),
                 );
             }
         }
@@ -185,17 +201,18 @@ pub fn handle_damage_events(
     mut commands: Commands,
     mut q: Query<&mut Health>,
     mut damages: EventReader<DamageEvent>,
-    mut players: Query<&mut Player, Without<CreatureType>>,
+    mut players: Query<(&mut Player, &MusicController), Without<CreatureType>>,
     mut zombies: Query<&mut CreatureType, Without<Player>>,
     audio: Res<Audio>,
     audio_assets: Res<AudioAssets>,
+    audio_sinks: Res<Assets<AudioSink>>,
 ) {
     for DamageEvent { victim, attacker } in damages.iter() {
         if let Ok(mut health) = q.get_mut(*victim) {
             health.0 -= 1;
 
             // Handle Player Cases
-            if let Ok(player) = players.get_mut(*victim) {
+            if let Ok((player, music_controller)) = players.get_mut(*victim) {
                 if health.0 <= 0 {
                     player.active_zombies.iter().for_each(|e| {
                         println!("Despawning zombie: {:?}", e);
@@ -204,6 +221,9 @@ pub fn handle_damage_events(
 
                     println!("Despawning player: {:?}", victim);
                     audio.play(audio_assets.player_death.clone());
+                    if let Some(sink) = audio_sinks.get(&music_controller.0) {
+                        sink.pause();
+                    }
 
                     commands.entity(*victim).despawn_descendants();
 
@@ -226,7 +246,7 @@ pub fn handle_damage_events(
                     audio.play(audio_assets.zombie_death.clone());
 
                     if let Some(parent) = z_type.0 {
-                        let mut player = players.get_mut(parent).unwrap();
+                        let (mut player, _) = players.get_mut(parent).unwrap();
                         player.active_zombies.retain(|e| *e != *victim);
                     }
                 } else {
@@ -257,18 +277,30 @@ pub fn update_health(
 
 pub fn check_win(
     mut commands: Commands,
-    player: Query<&Player, Changed<Player>>,
+    player: Query<(&Player, &MusicController), Changed<Player>>,
     audio: Res<Audio>,
     audio_assets: Res<AudioAssets>,
+    audio_sinks: Res<Assets<AudioSink>>,
 ) {
-    for p in player.iter() {
+    let mut game_over = false;
+    for (p, _) in player.iter() {
         if p.active_zombies.len() >= COLLECTED_ZOMBIES_TO_WIN {
-            commands.insert_resource(NextState(AppState::Win));
             commands.insert_resource(MatchData {
                 result: format!("Player {:?} won!", get_color_name(p.color)),
             });
-            audio.play(audio_assets.victory.clone());
+            game_over = true;
         }
+    }
+
+    // this is only stopping 1 of the tank noises for some reason
+    if game_over {
+        for (_, music_controller) in player.iter() {
+            if let Some(sink) = audio_sinks.get(&music_controller.0) {
+                sink.stop();
+            }
+        }
+        audio.play(audio_assets.victory.clone());
+        commands.insert_resource(NextState(AppState::Win));
     }
 }
 

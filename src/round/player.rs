@@ -58,10 +58,16 @@ pub struct PlayerBundle {
     ready: BulletReady,
     controls: PlayerControls,
     round_entity: RoundEntity,
+    music_controller: MusicController,
 }
 
 impl PlayerBundle {
-    pub fn new(transform: Transform, color: Color, texture: Handle<Image>) -> Self {
+    pub fn new(
+        transform: Transform,
+        color: Color,
+        texture: Handle<Image>,
+        music_controller: MusicController,
+    ) -> Self {
         Self {
             health: Health(10),
             sprite: SpriteBundle {
@@ -81,6 +87,7 @@ impl PlayerBundle {
             ready: BulletReady(true),
             round_entity: RoundEntity,
             controls: PlayerControls::default(),
+            music_controller,
         }
     }
 }
@@ -101,9 +108,10 @@ pub fn spawn_player(
     texture: Handle<Image>,
     ring_mesh: Handle<Mesh>,
     color_mat: Handle<ColorMaterial>,
+    music_controller: MusicController,
 ) {
     let player = commands
-        .spawn_bundle(PlayerBundle::new(transform, color, texture))
+        .spawn_bundle(PlayerBundle::new(transform, color, texture, music_controller))
         .insert(Player::new(handle, color))
         .id();
 
@@ -232,7 +240,10 @@ pub fn follow_collection(
                 .insert(CreatureType(Some(player_ent)))
                 .insert(CreatureFollow(follow_distance));
 
-            audio.play(audio_assets.collect.clone());
+            audio.play_with_settings(
+                audio_assets.collect.clone(),
+                PlaybackSettings::ONCE.with_volume(0.5),
+            );
         }
     }
 }
