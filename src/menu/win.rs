@@ -98,12 +98,15 @@ pub fn setup_win_ui(
 pub fn btn_listeners(
     mut commands: Commands,
     mut interaction_query: Query<(&Interaction, &MenuWinBtn), Changed<Interaction>>,
+    audio: Res<Audio>,
+    audio_assets: Res<AudioAssets>,
 ) {
     for (interaction, btn) in interaction_query.iter_mut() {
         if let Interaction::Clicked = *interaction {
             match btn {
                 MenuWinBtn::Back => {
                     commands.insert_resource(NextState(AppState::MenuMain));
+                    audio.play(audio_assets.click.clone());
                 }
             }
         }

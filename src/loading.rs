@@ -18,8 +18,23 @@ pub struct TextureAssets {
 
 #[derive(AssetCollection)]
 pub struct AudioAssets {
-    #[asset(path = "audio/laserSmall_004.ogg")]
+    #[asset(path = "audio/laser.ogg")]
     pub laser: Handle<AudioSource>,
+
+    #[asset(path = "audio/collect.ogg")]
+    pub collect: Handle<AudioSource>,
+
+    #[asset(path = "audio/player_death.ogg")]
+    pub player_death: Handle<AudioSource>,
+
+    #[asset(path = "audio/zombie_death.ogg")]
+    pub zombie_death: Handle<AudioSource>,
+
+    #[asset(path = "audio/click.ogg")]
+    pub click: Handle<AudioSource>,
+
+    #[asset(path = "audio/victory.ogg")]
+    pub victory: Handle<AudioSource>,
 }
 
 #[derive(AssetCollection)]

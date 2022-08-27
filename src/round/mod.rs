@@ -187,6 +187,8 @@ pub fn handle_damage_events(
     mut damages: EventReader<DamageEvent>,
     mut players: Query<&mut Player, Without<CreatureType>>,
     mut zombies: Query<&mut CreatureType, Without<Player>>,
+    audio: Res<Audio>,
+    audio_assets: Res<AudioAssets>,
 ) {
     for DamageEvent { victim, attacker } in damages.iter() {
         if let Ok(mut health) = q.get_mut(*victim) {
@@ -201,6 +203,7 @@ pub fn handle_damage_events(
                     });
 
                     println!("Despawning player: {:?}", victim);
+                    audio.play(audio_assets.player_death.clone());
 
                     commands.entity(*victim).despawn_descendants();
 
@@ -220,6 +223,7 @@ pub fn handle_damage_events(
             if let Ok(z_type) = zombies.get_mut(*victim) {
                 if health.0 <= 0 {
                     commands.entity(*victim).despawn_recursive();
+                    audio.play(audio_assets.zombie_death.clone());
 
                     if let Some(parent) = z_type.0 {
                         let mut player = players.get_mut(parent).unwrap();
@@ -251,13 +255,19 @@ pub fn update_health(
     }
 }
 
-pub fn check_win(mut commands: Commands, player: Query<&Player, Changed<Player>>) {
+pub fn check_win(
+    mut commands: Commands,
+    player: Query<&Player, Changed<Player>>,
+    audio: Res<Audio>,
+    audio_assets: Res<AudioAssets>,
+) {
     for p in player.iter() {
         if p.active_zombies.len() >= COLLECTED_ZOMBIES_TO_WIN {
             commands.insert_resource(NextState(AppState::Win));
             commands.insert_resource(MatchData {
                 result: format!("Player {:?} won!", get_color_name(p.color)),
             });
+            audio.play(audio_assets.victory.clone());
         }
     }
 }
