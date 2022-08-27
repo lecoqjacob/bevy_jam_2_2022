@@ -24,16 +24,15 @@ impl MapSettings {
     }
 }
 
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn startup(mut commands: Commands, map_assets: Res<MapAssets>) {
     let tilemap_size = TilemapSize { x: TILE_MAP_WIDTH, y: TILE_MAP_HEIGHT };
 
     let tile_size = TilemapTileSize { x: 16.0, y: 16.0 };
-    let map_handle: Handle<TiledMap> = asset_server.load("maps/map.tmx");
 
     // Spawn Tilemap
     commands
         .spawn()
-        .insert_bundle(TiledMapBundle { tiled_map: map_handle, ..Default::default() })
+        .insert_bundle(TiledMapBundle { tiled_map: map_assets.map.clone(), ..Default::default() })
         .insert(RoundEntity);
 
     commands.insert_resource(MapSettings::new(

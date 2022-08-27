@@ -109,14 +109,18 @@ pub fn btn_listeners(
     mut commands: Commands,
     mut exit: EventWriter<AppExit>,
     mut interaction_query: Query<(&Interaction, &MenuMainBtn), Changed<Interaction>>,
+    audio: Res<Audio>,
+    audio_assets: Res<AudioAssets>,
 ) {
     for (interaction, btn) in interaction_query.iter_mut() {
         if let Interaction::Clicked = *interaction {
             match btn {
                 MenuMainBtn::PlayGame => {
                     commands.insert_resource(NextState(AppState::WorldGen));
+                    audio.play(audio_assets.click.clone());
                 }
                 MenuMainBtn::Quit => {
+                    audio.play(audio_assets.click.clone());
                     exit.send(AppExit);
                 }
             }

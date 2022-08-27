@@ -212,6 +212,8 @@ pub fn follow_collection(
         (Entity, &mut Sprite, &Transform),
         (With<CreatureType>, Without<CreatureFollow>, Without<CreatureTarget>),
     >,
+    audio: Res<Audio>,
+    audio_assets: Res<AudioAssets>,
 ) {
     for (player_ent, mut player, transform) in &mut players {
         for (zombie_ent, mut sprite, _) in zombie_query.iter_mut().filter(|(_, _, t)| {
@@ -229,6 +231,8 @@ pub fn follow_collection(
                 .entity(zombie_ent)
                 .insert(CreatureType(Some(player_ent)))
                 .insert(CreatureFollow(follow_distance));
+
+            audio.play(audio_assets.collect.clone());
         }
     }
 }

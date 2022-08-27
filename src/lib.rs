@@ -42,6 +42,7 @@ mod prelude {
     pub const UI_HEIGHT: i32 = 10;
 }
 
+use bevy::audio::AudioPlugin;
 pub use prelude::*;
 
 pub const LAUNCHER_TITLE: &str = "Bevy Shell - Template";
@@ -66,6 +67,7 @@ pub fn app() -> App {
         .add_plugin(TiledMapPlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(LoadingPlugin)
+        .add_plugin(AudioPlugin)
         .add_plugins(MenuPlugins)
         .add_plugin(MapPlugin)
         .add_plugin(RoundPlugin);

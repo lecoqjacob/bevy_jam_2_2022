@@ -27,6 +27,8 @@ pub fn fire_bullets(
     mut commands: Commands,
     textures: Res<TextureAssets>,
     mut player_query: Query<(Entity, &Transform, &Player, &PlayerControls, &mut BulletReady)>,
+    audio: Res<Audio>,
+    audio_assets: Res<AudioAssets>,
 ) {
     for (player_ent, transform, player, controls, mut bullet_ready) in player_query.iter_mut() {
         if controls.firing && bullet_ready.0 {
@@ -46,6 +48,8 @@ pub fn fire_bullets(
                 .insert(RoundEntity);
 
             bullet_ready.0 = false;
+
+            audio.play(audio_assets.laser.clone());
         }
     }
 }
