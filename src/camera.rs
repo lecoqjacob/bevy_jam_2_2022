@@ -18,12 +18,15 @@ pub struct RightCamera;
 #[derive(Component)]
 pub struct MiniMapCamera;
 
+const SCALE: f32 = 0.5;
+
 fn setup_game_camera(mut commands: Commands) {
     // Left Camera
     commands
         .spawn_bundle(Camera2dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 999.).looking_at(Vec3::ZERO, Vec3::Y),
             camera: Camera { priority: 0, ..Default::default() },
+            projection: OrthographicProjection { far: 1000.0 / SCALE, scale: SCALE, ..default() },
             ..default()
         })
         .insert(LeftCamera);
@@ -37,6 +40,7 @@ fn setup_game_camera(mut commands: Commands) {
                 priority: 1,
                 ..default()
             },
+            projection: OrthographicProjection { far: 1000.0 / SCALE, scale: SCALE, ..default() },
             camera_2d: Camera2d {
                 // don't clear on the second camera because the first camera already cleared the window
                 clear_color: ClearColorConfig::None,
