@@ -17,6 +17,18 @@ pub struct TextureAssets {
 }
 
 #[derive(AssetCollection)]
+pub struct AudioAssets {
+    #[asset(path = "audio/laserSmall_004.ogg")]
+    pub laser: Handle<AudioSource>,
+}
+
+#[derive(AssetCollection)]
+pub struct MapAssets {
+    #[asset(path = "maps/map.tmx")]
+    pub map: Handle<TiledMap>,
+}
+
+#[derive(AssetCollection)]
 pub struct FontAssets {
     #[asset(path = "fonts/dos.ttf")]
     pub dos: Handle<Font>,
@@ -120,6 +132,8 @@ impl Plugin for LoadingPlugin {
                 LoadingState::new(AppState::AssetLoading)
                     .with_collection::<FontAssets>()
                     .with_collection::<TextureAssets>()
+                    .with_collection::<AudioAssets>()
+                    .with_collection::<MapAssets>()
                     .continue_to_state(AppState::MenuMain),
             );
     }
