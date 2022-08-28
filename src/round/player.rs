@@ -2,7 +2,7 @@ use bevy::math::Vec3Swizzles;
 
 use crate::round::*;
 
-use self::player_settings::SPEED_MULTIPLIER;
+use self::player_settings::{BOOST_HEIGHT, BOOST_WIDTH, SPEED_MULTIPLIER};
 
 pub mod player_settings {
     use crate::colors::*;
@@ -17,6 +17,13 @@ pub mod player_settings {
     pub const TARGET_COLLECTION_DISTANCE: f32 = 100.;
 
     pub const PLAYER_COLORS: [Color; 4] = [BLUE, RED, PURPLE, GREEN];
+
+    // boost
+    pub const BOOST_WIDTH: f32 = 15.;
+    pub const BOOST_HEIGHT: f32 = 5.;
+    pub const BOOST_MAX: f32 = 30.;
+    pub const BOOST_PER_SECOND: f32 = 5.;
+    pub const BOOST_PER_COLLECT: f32 = 5.;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -55,6 +62,7 @@ pub struct PlayerBundle {
     #[bundle]
     sprite: SpriteBundle,
     health: Health,
+    boost: Boost,
     ready: BulletReady,
     controls: PlayerControls,
     round_entity: RoundEntity,
@@ -70,6 +78,7 @@ impl PlayerBundle {
     ) -> Self {
         Self {
             health: Health(10),
+            boost: Boost(player_settings::BOOST_MAX),
             sprite: SpriteBundle {
                 transform,
                 texture,
@@ -97,6 +106,9 @@ pub struct BulletReady(pub bool);
 
 #[derive(Component, Default, Debug)]
 pub struct HealthBar;
+
+#[derive(Component, Default, Debug)]
+pub struct BoostBar;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -128,6 +140,18 @@ pub fn spawn_player(
         .insert(HealthBar)
         .insert(RoundEntity);
 
+        p.spawn_bundle(SpriteBundle {
+            transform: transform.with_translation(Vec3::new(0., -35., 10.)),
+            sprite: Sprite {
+                color: Color::BLUE,
+                custom_size: Some(Vec2::new(BOOST_WIDTH, BOOST_HEIGHT)),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(BoostBar)
+        .insert(RoundEntity);
+
         p.spawn_bundle(MaterialMesh2dBundle {
             material: color_mat,
             mesh: ring_mesh.into(),
@@ -149,9 +173,9 @@ pub struct PlayerControls {
 pub fn move_players(
     time: Res<Time>,
     map_settings: Res<MapSettings>,
-    mut query: Query<(&mut Transform, &PlayerControls, &Player)>,
+    mut query: Query<(&mut Transform, &PlayerControls, &Player, &mut Boost)>,
 ) {
-    for (mut t, c, p) in query.iter_mut() {
+    for (mut t, c, p, mut b) in query.iter_mut() {
         t.rotate_z(c.steer * p.rotation_speed * time.delta_seconds());
         apply_forward_delta(
             &time,
@@ -159,6 +183,10 @@ pub fn move_players(
             p.movement_speed,
             if c.shift { c.accel * SPEED_MULTIPLIER } else { c.accel },
         );
+        if c.shift {
+            b.0 -= player_settings::BOOST_PER_SECOND * time.delta_seconds();
+            b.0 = b.0.clamp(0.0, player_settings::BOOST_MAX);
+        }
 
         // constrain cube to plane
         let (map_width, map_height) = (map_settings.width, map_settings.height);
@@ -215,7 +243,7 @@ pub fn respawn_players(
 pub fn follow_collection(
     mut commands: Commands,
     rng: Res<RandomNumbers>,
-    mut players: Query<(Entity, &mut Player, &Transform)>,
+    mut players: Query<(Entity, &mut Player, &Transform, &mut Boost)>,
     mut zombie_query: Query<
         (Entity, &mut Sprite, &Transform),
         (With<CreatureType>, Without<CreatureFollow>, Without<CreatureTarget>),
@@ -223,7 +251,7 @@ pub fn follow_collection(
     audio: Res<Audio>,
     audio_assets: Res<AudioAssets>,
 ) {
-    for (player_ent, mut player, transform) in &mut players {
+    for (player_ent, mut player, transform, mut boost) in &mut players {
         for (zombie_ent, mut sprite, _) in zombie_query.iter_mut().filter(|(_, _, t)| {
             Vec2::distance(transform.translation.xy(), t.translation.xy())
                 < player_settings::FOLLOW_COLLECTION_DISTANCE
@@ -244,6 +272,8 @@ pub fn follow_collection(
                 audio_assets.collect.clone(),
                 PlaybackSettings::ONCE.with_volume(0.5),
             );
+            boost.0 += player_settings::BOOST_PER_COLLECT;
+            boost.0 = boost.0.clamp(0.0, player_settings::BOOST_MAX);
         }
     }
 }
