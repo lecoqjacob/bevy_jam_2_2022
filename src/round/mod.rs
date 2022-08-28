@@ -284,7 +284,7 @@ pub fn update_boost(
         if let Ok(boost) = players.get(parent_ent) {
             let boost = boost.0;
             let new_x = player_settings::BOOST_WIDTH * (boost / player_settings::BOOST_MAX);
-            sprite.custom_size = Some(Vec2::new(new_x, player_settings::BOOST_HEIGHT))
+            sprite.custom_size = Some(Vec2::new(new_x, player_settings::BOOST_HEIGHT));
         }
     }
 }
@@ -341,6 +341,7 @@ impl Plugin for RoundPlugin {
                 .run_in_state(AppState::InGame)
                 .with_system(snap_to_player)
                 .with_system(update_health)
+                .with_system(update_boost)
                 .with_system(handle_damage_events.run_on_event::<DamageEvent>())
                 .into(),
         );
