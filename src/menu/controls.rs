@@ -89,6 +89,19 @@ pub fn setup_controls_ui(mut commands: Commands, font_assets: Res<FontAssets>) {
                 .with_text_alignment(TextAlignment::CENTER)
                 .with_style(Style { margin: UiRect::all(Val::Px(16.)), ..Default::default() }),
             );
+
+            parent.spawn_bundle(
+                TextBundle::from_sections([TextSection::new(
+                    "Press 'Enter' to continue...\n",
+                    TextStyle {
+                        font_size: 25.0,
+                        color: Color::WHITE,
+                        font: font_assets.fira_sans.clone(),
+                    },
+                )])
+                .with_text_alignment(TextAlignment::CENTER)
+                .with_style(Style { margin: UiRect::all(Val::Px(16.)), ..Default::default() }),
+            );
         })
         .insert(ControlsUI);
 }
