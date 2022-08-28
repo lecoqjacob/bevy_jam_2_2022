@@ -57,6 +57,9 @@ pub struct CreatureTarget(pub Entity);
 #[derive(Default, Component, Clone, Debug)]
 pub struct Health(pub i32);
 
+#[derive(Default, Component, Clone, Debug)]
+pub struct Boost(pub f32);
+
 // #[derive(Default, Component, Clone, Debug)]
 // pub struct Respawn(pub Color);
 

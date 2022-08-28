@@ -59,8 +59,8 @@ pub fn input(keyboard_input: Res<Input<KeyCode>>) -> [u8; 2] {
     [left_inp, right_inp]
 }
 
-pub fn apply_inputs(In(inputs): In<[u8; 2]>, mut query: Query<&mut PlayerControls>) {
-    for (i, mut c) in query.iter_mut().enumerate() {
+pub fn apply_inputs(In(inputs): In<[u8; 2]>, mut query: Query<(&mut PlayerControls, &Boost)>) {
+    for (i, (mut c, boost)) in query.iter_mut().enumerate() {
         let input = inputs[i];
 
         c.steer = if input & INPUT_LEFT != 0 && input & INPUT_RIGHT == 0 {
@@ -80,7 +80,7 @@ pub fn apply_inputs(In(inputs): In<[u8; 2]>, mut query: Query<&mut PlayerControl
         };
 
         c.firing = input & INPUT_FIRE != 0;
-        c.shift = input & INPUT_SHIFT != 0;
+        c.shift = (input & INPUT_SHIFT != 0) && boost.0 > 0.0;
     }
 }
 

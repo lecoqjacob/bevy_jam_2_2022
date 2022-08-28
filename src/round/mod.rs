@@ -275,6 +275,20 @@ pub fn update_health(
     }
 }
 
+pub fn update_boost(
+    players: Query<&Boost, With<Player>>,
+    mut boosts: Query<(&Parent, &mut Sprite), With<BoostBar>>,
+) {
+    for (parent, mut sprite) in &mut boosts {
+        let parent_ent = parent.get();
+        if let Ok(boost) = players.get(parent_ent) {
+            let boost = boost.0;
+            let new_x = player_settings::BOOST_WIDTH * (boost / player_settings::BOOST_MAX);
+            sprite.custom_size = Some(Vec2::new(new_x, player_settings::BOOST_HEIGHT))
+        }
+    }
+}
+
 pub fn check_win(
     mut commands: Commands,
     player: Query<(&Player, &MusicController), Changed<Player>>,
