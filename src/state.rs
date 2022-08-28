@@ -1,15 +1,18 @@
 use bevy::prelude::SystemLabel;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InGameState {
+    Playing,
+    Controls,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppState {
     AssetLoading,
     MenuMain,
-    InGame,
-    // MenuOnline,
-    // MenuConnect,
     WorldGen,
-    // RoundLocal,
-    // RoundOnline,
+    Controls,
+    InGame,
     Win,
 }
 

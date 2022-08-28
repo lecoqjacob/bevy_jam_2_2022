@@ -6,6 +6,9 @@ pub struct TextureAssets {
     #[asset(path = "textures/bevy.png")]
     pub bevy_logo: Handle<Image>,
 
+    #[asset(path = "textures/brain.png")]
+    pub brain: Handle<Image>,
+
     #[asset(path = "textures/bullet.png")]
     pub bullet: Handle<Image>,
 

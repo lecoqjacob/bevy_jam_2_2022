@@ -10,11 +10,7 @@ pub enum MenuMainBtn {
     Quit,
 }
 
-pub fn setup_main_menu_ui(
-    mut commands: Commands,
-    image_assets: Res<TextureAssets>,
-    font_assets: Res<FontAssets>,
-) {
+pub fn setup_main_menu_ui(mut commands: Commands, font_assets: Res<FontAssets>) {
     // root node
     commands
         .spawn_bundle(NodeBundle {
@@ -33,16 +29,14 @@ pub fn setup_main_menu_ui(
         })
         .with_children(|parent| {
             // logo
-            parent.spawn_bundle(ImageBundle {
-                style: Style {
-                    size: Size::new(Val::Px(500.0), Val::Px(139.0)),
-                    margin: UiRect::all(Val::Px(16.)),
-                    padding: UiRect::all(Val::Px(16.)),
-                    ..Default::default()
+            parent.spawn_bundle(TextBundle::from_sections([TextSection::new(
+                "Brain Hoarders",
+                TextStyle {
+                    font_size: 50.0,
+                    color: Color::WHITE,
+                    font: font_assets.fira_sans.clone(),
                 },
-                image: image_assets.bevy_logo.clone().into(),
-                ..Default::default()
-            });
+            )]));
 
             // online match button
             parent
@@ -116,8 +110,8 @@ pub fn btn_listeners(
         if let Interaction::Clicked = *interaction {
             match btn {
                 MenuMainBtn::PlayGame => {
-                    commands.insert_resource(NextState(AppState::WorldGen));
                     audio.play(audio_assets.click.clone());
+                    commands.insert_resource(NextState(AppState::Controls));
                 }
                 MenuMainBtn::Quit => {
                     audio.play(audio_assets.click.clone());

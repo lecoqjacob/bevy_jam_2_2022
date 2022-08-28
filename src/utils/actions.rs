@@ -20,28 +20,6 @@ pub enum GameKey {
 }
 
 impl GameKey {
-    pub fn key_code(&self) -> KeyCode {
-        match self {
-            GameKey::LocalUp => KeyCode::W,
-            GameKey::LocalDown => KeyCode::S,
-            GameKey::LocalLeft => KeyCode::A,
-            GameKey::LocalRight => KeyCode::D,
-            GameKey::LocalAttack => KeyCode::Space,
-            GameKey::LocalShift => KeyCode::LShift,
-
-            GameKey::Up => KeyCode::Up,
-            GameKey::Down => KeyCode::Down,
-            GameKey::Left => KeyCode::Left,
-            GameKey::Right => KeyCode::Right,
-            GameKey::Attack => KeyCode::Return,
-            GameKey::Shift => KeyCode::Return,
-        }
-    }
-
-    pub fn reset(&self, keyboard_input: &mut Input<KeyCode>) {
-        keyboard_input.reset(self.key_code());
-    }
-
     pub fn just_released(&self, keyboard_input: &Res<Input<KeyCode>>) -> bool {
         match self {
             // Local
@@ -56,8 +34,8 @@ impl GameKey {
             GameKey::Down => keyboard_input.just_released(KeyCode::Down),
             GameKey::Left => keyboard_input.just_released(KeyCode::Left),
             GameKey::Right => keyboard_input.just_released(KeyCode::Right),
-            GameKey::Shift => keyboard_input.just_released(KeyCode::Return),
-            GameKey::Attack => keyboard_input.just_released(KeyCode::RShift),
+            GameKey::Shift => keyboard_input.just_released(KeyCode::B),
+            GameKey::Attack => keyboard_input.just_released(KeyCode::M),
         }
     }
 
@@ -75,8 +53,8 @@ impl GameKey {
             GameKey::Down => keyboard_input.pressed(KeyCode::Down),
             GameKey::Left => keyboard_input.pressed(KeyCode::Left),
             GameKey::Right => keyboard_input.pressed(KeyCode::Right),
-            GameKey::Shift => keyboard_input.pressed(KeyCode::Return),
-            GameKey::Attack => keyboard_input.pressed(KeyCode::RShift),
+            GameKey::Shift => keyboard_input.pressed(KeyCode::B),
+            GameKey::Attack => keyboard_input.pressed(KeyCode::M),
         }
     }
 
@@ -94,8 +72,8 @@ impl GameKey {
             GameKey::Down => keyboard_input.just_pressed(KeyCode::Down),
             GameKey::Left => keyboard_input.just_pressed(KeyCode::Left),
             GameKey::Right => keyboard_input.just_pressed(KeyCode::Right),
-            GameKey::Shift => keyboard_input.just_pressed(KeyCode::Return),
-            GameKey::Attack => keyboard_input.just_pressed(KeyCode::RShift),
+            GameKey::Shift => keyboard_input.just_pressed(KeyCode::B),
+            GameKey::Attack => keyboard_input.just_pressed(KeyCode::M),
         }
     }
 }

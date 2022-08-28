@@ -2,9 +2,11 @@
 
 use crate::prelude::*;
 
+pub mod controls;
 pub mod main;
 pub mod win;
 
+pub use controls::*;
 pub use main::*;
 pub use win::*;
 
@@ -34,6 +36,6 @@ pub fn btn_visuals<BTN: Component>(
 pub struct MenuPlugins;
 impl PluginGroup for MenuPlugins {
     fn build(&mut self, group: &mut bevy::app::PluginGroupBuilder) {
-        group.add(MainMenuPlugin).add(WinMenuPlugin);
+        group.add(MainMenuPlugin).add(WinMenuPlugin).add(ControlsMenuPlugin);
     }
 }
