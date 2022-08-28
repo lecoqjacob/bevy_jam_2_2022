@@ -21,8 +21,8 @@ pub mod player_settings {
     // boost
     pub const BOOST_WIDTH: f32 = 15.;
     pub const BOOST_HEIGHT: f32 = 5.;
-    pub const BOOST_MAX: f32 = 100.;
-    pub const BOOST_PER_TICK: f32 = 1.;
+    pub const BOOST_MAX: f32 = 30.;
+    pub const BOOST_PER_SECOND: f32 = 5.;
     pub const BOOST_PER_COLLECT: f32 = 5.;
 }
 
@@ -143,7 +143,7 @@ pub fn spawn_player(
         p.spawn_bundle(SpriteBundle {
             transform: transform.with_translation(Vec3::new(0., -35., 10.)),
             sprite: Sprite {
-                color: Color::YELLOW_GREEN,
+                color: Color::BLUE,
                 custom_size: Some(Vec2::new(BOOST_WIDTH, BOOST_HEIGHT)),
                 ..default()
             },
@@ -184,7 +184,8 @@ pub fn move_players(
             if c.shift { c.accel * SPEED_MULTIPLIER } else { c.accel },
         );
         if c.shift {
-            b.0 -= player_settings::BOOST_PER_TICK;
+            b.0 -= player_settings::BOOST_PER_SECOND * time.delta_seconds();
+            b.0 = b.0.clamp(0.0, player_settings::BOOST_MAX);
         }
 
         // constrain cube to plane
@@ -272,6 +273,7 @@ pub fn follow_collection(
                 PlaybackSettings::ONCE.with_volume(0.5),
             );
             boost.0 += player_settings::BOOST_PER_COLLECT;
+            boost.0 = boost.0.clamp(0.0, player_settings::BOOST_MAX);
         }
     }
 }
