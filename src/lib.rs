@@ -45,7 +45,7 @@ mod prelude {
 use bevy::audio::AudioPlugin;
 pub use prelude::*;
 
-pub const LAUNCHER_TITLE: &str = "Bevy Shell - Template";
+pub const LAUNCHER_TITLE: &str = "Brain hoarders";
 
 pub fn app() -> App {
     let mut app = App::new();
